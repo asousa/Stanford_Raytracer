@@ -68,7 +68,7 @@ contains
     lam = 90.0_8-(p(3)*360.0_8/2.0_8/pi)
     lamr = d2r*lam
 
-    r = r0 * L * cos(lamr)**2.0_8	! geocentric radii for all (L,lam) pairs
+    r = r0 * L * cos(lamr)**2.0_8 ! geocentric radii for all (L,lam) pairs
 
     z(1) = r
     z(2) = d2r*(90.0_8-lam)
@@ -76,7 +76,7 @@ contains
     ! update
     call dens
     
-    ce = ani(1)	! dissect the answer
+    ce = ani(1) ! dissect the answer
     ch = ani(2)
     che = ani(3)
     co = ani(4)
@@ -87,6 +87,7 @@ contains
     ! Convert to m^-3;
     Ns = 1.0e6_8*(/ ce, ch, che, co /);
     nus = (/ 0.0_8, 0.0_8, 0.0_8, 0.0_8 /);
+    ! Dipole magnetic field
     B0 = bmodel_cartesian(x);
 
   end subroutine funcPlasmaParams

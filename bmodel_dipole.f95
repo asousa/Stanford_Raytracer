@@ -27,8 +27,8 @@ subroutine bmodel( Brad, Btheta, Bmag, R, theta_rad )
   Bo = .312_8/10000.0_8
 
   Bor3 = Bo*(R**(-3.0_8))
-  Brad = -2.0_8*Bor3 * cos(theta_rad)	! radial B-field
-  Btheta = -Bor3 * sin(theta_rad)	! azimuthal B-field (theta-directed)
+  Brad = -2.0_8*Bor3 * cos(theta_rad) ! radial B-field
+  Btheta = -Bor3 * sin(theta_rad) ! azimuthal B-field (theta-directed)
   Bmag = sqrt(Brad*Brad + Btheta*Btheta) ! magnitude
 end subroutine bmodel
 

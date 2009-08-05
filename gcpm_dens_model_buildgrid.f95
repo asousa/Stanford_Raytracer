@@ -27,14 +27,19 @@ program gcpm_dens_model_buildgrid
   integer :: ind, i,j,k
   real*8,allocatable :: tmp(:)
   real*8 :: tmpinput
+
+  integer :: sz
   
   type(gcpmStateData),target :: stateData
   type(gcpmStateDataP) :: stateDataP
   
   integer :: computederivatives
+
+  ind = 0
+
   if( iargc() /= 14 ) then
      print *, 'Usage:'
-     print *, '  program minx maxx miny maxy minz maxz nx ny nz compder filename'
+     print *, '  program minx maxx miny maxy minz maxz nx ny nz compder filename kp yearday milliseconds_day'
      print *, '  '
      print *, '  minx: minimum x coordinate in earth radii'
      print *, '  maxx: maximum x coordinate in earth radii'
@@ -42,6 +47,9 @@ program gcpm_dens_model_buildgrid
      print *, '  maxy: maximum y coordinate in earth radii'
      print *, '  minz: minimum z coordinate in earth radii'
      print *, '  maxz: maximum z coordinate in earth radii'
+     print *, '    nx: number of points in x direction'
+     print *, '    ny: number of points in y direction'
+     print *, '    nz: number of points in z direction'
      print *, '  compder:  (1) compute the derivatives'
      print *, '            (0) do not compute derivatives'
      print *, '  filename: output filename'
@@ -144,17 +152,19 @@ program gcpm_dens_model_buildgrid
   stateDataP%p => stateData
 
   ! marshall the data pointer to our function
-  allocate(data(size(transfer(stateDataP, data))))
+  sz = size(transfer(stateDataP, data))
+  allocate(data(sz))
   data = transfer(stateDataP, data)
 
   ! build the output array
   ! Such a large number is necessary for single precision
   dfact = 1.0e-3_8
   do k=1,nz
-     print *, 'k=',k, ' of ', nz
      do j=1,ny
-        print *, 'j=',j, ' of ', ny
         do i=1,nx
+           print *, 'i=',i, '/', nx, 'j=',j, '/', ny, 'k=',k, '/', nz
+! error at: i= 24 / 80 j= 20 / 80 k= 31 / 80
+
            pos = (/ x(i), y(j), z(k) /)
            d=dfact*sqrt(dot_product(pos, pos))
            if( d == 0 ) then

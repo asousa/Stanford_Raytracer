@@ -311,10 +311,10 @@ function raytracer_stopconditions(pos, k, w, vprel, vgrel, dt)
     ! Faster than light group velocity
     raytracer_stopconditions = 3
     print *, 'Stopping integration.  Nonsensical group velocity.'
-  elseif( sqrt(dot_product(vprel,vprel)) > 1 ) then
-    ! Faster than light phase velocity
-    raytracer_stopconditions = 4
-    print *, 'Stopping integration.  Nonsensical phase velocity.'
+!!$  elseif( sqrt(dot_product(vprel,vprel)) > 1 ) then
+!!$    ! Faster than light phase velocity
+!!$    raytracer_stopconditions = 4
+!!$    print *, 'Stopping integration.  Nonsensical phase velocity.'
   elseif( dt < 1e-10 ) then
     ! dt too small
     print *, 'Stopping integration.  dt too small.'

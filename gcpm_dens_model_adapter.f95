@@ -1,5 +1,5 @@
 ! This module implements an adapter for GCPM with a dipole magnetic
-! field in geomagnetic (MAG) coordinates
+! field in geocentric solar magnetic (GSM) coordinates
 module gcpm_dens_model_adapter
   use util
   use constants, only : R_E, PI
@@ -14,14 +14,21 @@ module gcpm_dens_model_adapter
      !		(1) = yearday, e.g. 2001093
      !		(2) = miliseconds of day
      integer*4 :: itime(2)
-     real*4 :: akp
-     !	akp		real*4		dimension=1
      !		planetary Kp index
+     real*4 :: akp
+     ! Tsyganenko parameters
+     real*8 :: Pdyn, Dst, ByIMF, BzIMF
+     ! Whether to use (1) or not use (0) the tsyganenko corrections to IGRF
+     integer*4 :: use_tsyganenko
   end type gcpmStateData
   ! Pointer container type.  This is the data that is actually marshalled.
   type :: gcpmStateDataP 
      type(gcpmStateData), pointer :: p
   end type gcpmStateDataP
+
+  ! Imported from geopack
+  real*4 :: PSI
+  COMMON /GEOPACK1/ PSI
 
 contains
 
@@ -49,7 +56,20 @@ contains
     real*8 :: r, amlt, alatr
     real*4 :: outn(4)
 
+    integer*4 :: year, day, hour, min, sec
+
+    real*8 :: parmod(10)
+
+    integer*4 :: iopt
+    real*4 :: B0xTsy, B0yTsy, B0zTsy
+    real*4 :: B0xIGRF, B0yIGRF, B0zIGRF
+
+
+
     type(gcpmStateDataP) :: datap
+
+    iopt = 0
+
     ! Unmarshall the callback data
     datap = transfer(funcPlasmaParamsData, datap)
 
@@ -67,11 +87,12 @@ contains
        allocate(nus(4))
     end if
     
-    ! Convert from geomagnetic x,y,z to solar magnetic x,y,z
-    call MAG_TO_SM_d(datap%p%itime,x,x_sm)
+    ! Convert from GSM x,y,z to solar magnetic x,y,z needed by 
+    ! the GCPM model
+    call GSM_TO_SM_d(datap%p%itime,x,x_sm)
     
     ! convert to spherical coordinates
-    p_sm = cartesian_to_spherical(x)
+    p_sm = cartesian_to_spherical(x_sm)
     ! Convert magnetic r,theta,phi to SM local time in hours
     amlt = mod(24.0_8*p_sm(2)/(2.0_8*pi)+12.0_8,24.0_8)
     ! compute r, the geocentric distance in RE
@@ -103,7 +124,7 @@ contains
     !			(3) = total helium density in 1/cm^3
     !			(4) = total oxygen density in 1/cm^3
     !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-    !print *, 'itime=', itime, 'r=', r, 'amlt=', amlt, 'alatr=', alatr,'akp=',akp, 'outn=',outn
+    !print *, 'itime=', datap%p%itime, 'r=', r, 'amlt=', amlt, 'alatr=', alatr,'akp=',datap%p%akp, 'outn=',outn
     call gcpm_v24(datap%p%itime,real(r),real(amlt),&
          real(alatr),real(datap%p%akp),outn)
     
@@ -130,8 +151,46 @@ contains
     ! Convert to m^-3;
     Ns = 1.0e6_8*(/ ce, ch, che, co /);
     nus = (/ 0.0_8, 0.0_8, 0.0_8, 0.0_8 /);
-    B0 = bmodel_cartesian(x);
 
+    ! Tsyganenko magnetic field
+    ! we're assuming x is in GSM coordinates.
+    
+    ! Convert the itime parameter into the Tsyganenko parameters
+    year = datap%p%itime(1)/1000
+    day = mod(datap%p%itime(1),1000)
+    hour = datap%p%itime(2)/(1000*60*60)
+    min = (datap%p%itime(2)-hour*(1000*60*60))/(1000*60)
+    sec = (datap%p%itime(2)-hour*(1000*60*60)-min*(1000*60))/(1000)
+
+    ! Set the Tsyganenko parameters
+    parmod(1) = datap%p%Pdyn   !Pdyn:  between 0.5 and 10 nPa,
+    parmod(2) = datap%p%Dst    !Dst:  between -100 and +20,
+    parmod(3) = datap%p%ByIMF  !ByIMF: between -10 and +10 nT.
+    parmod(4) = datap%p%BzIMF  !BzIMF: between -10 and +10 nT.
+
+    ! Necessary call for the Tsyganenko geopack tools.  Also updates
+    ! the common variable psi
+    call tsy_recalc(year, day, hour, min, sec)
+    ! Find IGRF components in GSM coordinates
+    call IGRF_GSM (&
+         real(x(1)/R_E), real(x(2)/R_E), real(x(3)/R_E), &
+         B0xIGRF,B0yIGRF,B0zIGRF)
+    if( datap%p%use_tsyganenko == 1 ) then
+       call T96_01( iopt, real(parmod), real(psi), &
+            real(x(1)/R_E), real(x(2)/R_E), real(x(3)/R_E), &
+            B0xTsy, B0yTsy, B0zTsy)
+    else
+       B0xTsy = 0.0
+       B0yTsy = 0.0
+       B0zTsy = 0.0
+    end if
+       
+    ! Add the GSM and Tsyganenko corrections together and convert from
+    ! nT to T
+    B0(1) = (B0xIGRF+B0xTsy)*1.0e-9_8
+    B0(2) = (B0yIGRF+B0yTsy)*1.0e-9_8
+    B0(3) = (B0zIGRF+B0zTsy)*1.0e-9_8
+    
   end subroutine funcPlasmaParams
 
 
