@@ -26,8 +26,8 @@ module ngo_dens_model
 contains
 
 
-  subroutine readinput
-
+  subroutine readinput(filename)
+    character(len=*) :: filename
   dimension hducls(10), hducln(10), hducus(10), hducun(10)
 
 !      data pi/3.141592653589793/,clight/2.99792501 e05/,
@@ -41,7 +41,8 @@ contains
 !
 !     constants       (consf0 = q**2 / 4*pi*pi*e0*m)
 !-----
-      open (unit=4, file='newray.in', status='old')
+
+      open (unit=4, file=filename, status='old')
 
       zero = 0.0
       radgra = 180./pi

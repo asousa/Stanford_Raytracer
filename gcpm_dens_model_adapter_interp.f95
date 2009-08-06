@@ -1,6 +1,6 @@
 ! This module implements an interpolated adapter for GCPM with a
-! dipole magnetic field in geomagnetic (MAG) coordinates.  It expects
-! a filename as an input parameter, in the callback data.
+! dipole magnetic field in solar magnetic (SM) coordinates.  It
+! expects a filename as an input parameter, in the callback data.
 module gcpm_dens_model_adapter_interp
   use util
   use constants, only : R_E, PI
@@ -14,7 +14,6 @@ module gcpm_dens_model_adapter_interp
   ! interface for funcPlasmaParams() used by the raytracer.
   type :: gcpmStateDataInterp
      real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
-     real*8 :: B0(3)
      real*8 :: delx,dely,delz
      real*8 :: minx,maxx,miny,maxy,minz,maxz
      integer :: nx,ny,nz, nspec
@@ -119,7 +118,7 @@ contains
 
   ! Implementation of the plasma parameters function.
   ! Inputs:
-  !   x - position vector in cartesian (MAG) coordinates
+  !   x - position vector in cartesian (SM) coordinates
   ! Outputs:
   !  qs - vector of species charges
   !  Ns - vector of species densities in m^-3
@@ -131,10 +130,10 @@ contains
     implicit none
 
     real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
-    real*8 :: B0(3)
+    real*8 :: B0(3), B0tmp(3)
     character :: funcPlasmaParamsData(:)
     real*8 :: ce,ch,che,co
-    real*8 :: x(3), x_sm(3)
+    real*8 :: x(3),x_gsm(3)
     real*8 :: outn(4)
     integer :: ind
     
@@ -164,14 +163,15 @@ contains
     ! Unmarshall the callback data
     datap = transfer(funcPlasmaParamsData, datap)
 
-    ! The GCPM model is in SM coordinates, so convert to that coordinate
-    ! system from the input GSM
-    call GSM_TO_SM_d(datap%p%itime,x,x_sm)
+    ! Convert from SM x,y,z to GSM x,y,z needed by 
+    ! the Tsyganenko model
+    call SM_TO_GSM_d(datap%p%itime,x,x_gsm)
 
-    ! Do the interpolation for each species
+    ! Do the interpolation for each species.  The interpolation data
+    ! is stored in SM coordinates
     do ind=1,datap%p%nspec 
        outn(ind) = tricubic_interpolate_at( &
-            x_sm(1),x_sm(2),x_sm(3), &
+            x(1),x(2),x(3), &
             datap%p%f(ind,:,:,:), &
             datap%p%x, datap%p%y, datap%p%z, &
             datap%p%dfdx(ind,:,:,:), &
@@ -197,7 +197,6 @@ contains
     nus = (/ 0.0_8, 0.0_8, 0.0_8, 0.0_8 /)
 
     ! Tsyganenko magnetic field
-    ! we're assuming x is in GSM coordinates.
     
     ! Convert the itime parameter into the Tsyganenko parameters
     year = datap%p%itime(1)/1000
@@ -217,11 +216,11 @@ contains
     call tsy_recalc(year, day, hour, min, sec)
     ! Find IGRF components in GSM coordinates
     call IGRF_GSM (&
-         real(x(1)/R_E), real(x(2)/R_E), real(x(3)/R_E), &
+         real(x_gsm(1)/R_E), real(x_gsm(2)/R_E), real(x_gsm(3)/R_E), &
          B0xIGRF,B0yIGRF,B0zIGRF)
     if( datap%p%use_tsyganenko == 1 ) then
        call T96_01( iopt, real(parmod), real(psi), &
-            real(x(1)/R_E), real(x(2)/R_E), real(x(3)/R_E), &
+            real(x_gsm(1)/R_E), real(x_gsm(2)/R_E), real(x_gsm(3)/R_E), &
             B0xTsy, B0yTsy, B0zTsy)
     else
        B0xTsy = 0.0
@@ -231,9 +230,12 @@ contains
        
     ! Add the GSM and Tsyganenko corrections together and convert from
     ! nT to T
-    B0(1) = (B0xIGRF+B0xTsy)*1.0e-9_8
-    B0(2) = (B0yIGRF+B0yTsy)*1.0e-9_8
-    B0(3) = (B0zIGRF+B0zTsy)*1.0e-9_8
+    B0tmp(1) = (B0xIGRF+B0xTsy)*1.0e-9_8
+    B0tmp(2) = (B0yIGRF+B0yTsy)*1.0e-9_8
+    B0tmp(3) = (B0zIGRF+B0zTsy)*1.0e-9_8
+
+    ! We're in GSM coordinates.  Rotate back to SM
+    call GSM_TO_SM_d(datap%p%itime,B0tmp,B0)
 
   end subroutine funcPlasmaParams
 

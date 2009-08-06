@@ -9,12 +9,45 @@ module ngo_dens_model_adapter
   use bmodel_dipole
   implicit none
 
-  integer :: inputread = 0
+  ! Types for marshalling.  This is required since the user of this adapter
+  ! needs to set additional data for this adapter that is not in the 
+  ! interface for funcPlasmaParams() used by the raytracer.
+  type :: ngoStateData
+     !	itime	integer*4	dimensions=2
+     !		(1) = yearday, e.g. 2001093
+     !		(2) = miliseconds of day
+     integer*4 :: itime(2)
+     ! Tsyganenko parameters
+     real*8 :: Pdyn, Dst, ByIMF, BzIMF
+     ! Whether to use (1) or not use (0) the tsyganenko corrections to IGRF
+     integer*4 :: use_tsyganenko
+  end type ngoStateData
+  ! Pointer container type.  This is the data that is actually marshalled.
+  type :: ngoStateDataP 
+     type(ngoStateData), pointer :: p
+  end type ngoStateDataP
+
+  ! Imported from geopack
+  real*4 :: PSI
+  COMMON /GEOPACK1/ PSI
 
 contains
+
+
+  subroutine setup( dat, filename )
+    character (len=*),intent(in) :: filename
+    type(ngoStateData),intent(inout) :: dat
+    ! So far dat isn't used.  In the future I'd like to make 
+    ! the Ngo model more stateless, or push all the state into dat
+
+    ! Read the input file
+    call readinput(filename)
+
+  end subroutine setup
+
   ! Implementation of the plasma parameters function.
   ! Inputs:
-  !   x - position vector in cartesian (MAG) coordinates
+  !   x - position vector in cartesian (SM) coordinates
   ! Outputs:
   !  qs - vector of species charges
   !  Ns - vector of species densities in m^-3
@@ -25,20 +58,31 @@ contains
   subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
     implicit none
 
-    real*8 :: x(3)
+    real*8 :: x(3), x_gsm(3)
     real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
-    real*8 :: B0(3)
+    real*8 :: B0(3), B0tmp(3)
     character :: funcPlasmaParamsData(:)
 
     real*8 :: r, lam, lamr
     real*8 :: p(3)
     real*8 :: d2r
     real*8 :: ce,ch,che,co
-    
-    if( inputread == 0 ) then
-       inputread = 1
-       call readinput
-    end if
+
+    integer*4 :: year, day, hour, min, sec
+
+    real*8 :: parmod(10)
+
+    integer*4 :: iopt
+    real*4 :: B0xTsy, B0yTsy, B0zTsy
+    real*4 :: B0xIGRF, B0yIGRF, B0zIGRF
+
+    type(ngoStateDataP) :: datap
+
+
+    iopt = 0
+
+    ! Unmarshall the callback data
+    datap = transfer(funcPlasmaParamsData, datap)
 
     if (.not.(allocated(qs))) then
        allocate(qs(4))
@@ -53,6 +97,7 @@ contains
        allocate(nus(4))
     end if
 
+    ! given x is in SM coordinates, with z parallel to the dipole axis
     d2r = 2.0_8*pi/360.0_8
     ! r,theta,phi <- x,y,z
     ! theta is azimuth
@@ -87,8 +132,51 @@ contains
     ! Convert to m^-3;
     Ns = 1.0e6_8*(/ ce, ch, che, co /);
     nus = (/ 0.0_8, 0.0_8, 0.0_8, 0.0_8 /);
-    ! Dipole magnetic field
-    B0 = bmodel_cartesian(x);
+
+    ! Convert from SM x,y,z to GSM x,y,z needed by 
+    ! the Tsyganenko model
+    call SM_TO_GSM_d(datap%p%itime,x,x_gsm)
+
+    ! Tsyganenko magnetic field
+    
+    ! Convert the itime parameter into the Tsyganenko parameters
+    year = datap%p%itime(1)/1000
+    day = mod(datap%p%itime(1),1000)
+    hour = datap%p%itime(2)/(1000*60*60)
+    min = (datap%p%itime(2)-hour*(1000*60*60))/(1000*60)
+    sec = (datap%p%itime(2)-hour*(1000*60*60)-min*(1000*60))/(1000)
+
+    ! Set the Tsyganenko parameters
+    parmod(1) = datap%p%Pdyn   !Pdyn:  between 0.5 and 10 nPa,
+    parmod(2) = datap%p%Dst    !Dst:  between -100 and +20,
+    parmod(3) = datap%p%ByIMF  !ByIMF: between -10 and +10 nT.
+    parmod(4) = datap%p%BzIMF  !BzIMF: between -10 and +10 nT.
+
+    ! Necessary call for the Tsyganenko geopack tools.  Also updates
+    ! the common variable psi
+    call tsy_recalc(year, day, hour, min, sec)
+    ! Find IGRF components in GSM coordinates
+    call IGRF_GSM (&
+         real(x_gsm(1)/R_E), real(x_gsm(2)/R_E), real(x_gsm(3)/R_E), &
+         B0xIGRF,B0yIGRF,B0zIGRF)
+    if( datap%p%use_tsyganenko == 1 ) then
+       call T96_01( iopt, real(parmod), real(psi), &
+            real(x_gsm(1)/R_E), real(x_gsm(2)/R_E), real(x_gsm(3)/R_E), &
+            B0xTsy, B0yTsy, B0zTsy)
+    else
+       B0xTsy = 0.0
+       B0yTsy = 0.0
+       B0zTsy = 0.0
+    end if
+       
+    ! Add the GSM and Tsyganenko corrections together and convert from
+    ! nT to T
+    B0(1) = (B0xIGRF+B0xTsy)*1.0e-9_8
+    B0(2) = (B0yIGRF+B0yTsy)*1.0e-9_8
+    B0(3) = (B0zIGRF+B0zTsy)*1.0e-9_8
+
+    ! We're in GSM coordinates.  Rotate back to SM
+    call GSM_TO_SM_d(datap%p%itime,B0tmp,B0)
 
   end subroutine funcPlasmaParams
 end module ngo_dens_model_adapter

@@ -134,17 +134,17 @@ program gcpm_dens_model_buildgrid
   if( nx /= 1 ) then
      x = (/ (ind, ind=0,nx-1) /)*delx + minx
   else
-     x = (/ 0.0_8 /)
+     x = (/ minx /)
   end if
   if( ny /= 1 ) then
      y = (/ (ind, ind=0,ny-1) /)*dely + miny
   else
-     y = (/ 0.0_8 /)
+     y = (/ miny /)
   end if
   if( nz /= 1 ) then
      z = (/ (ind, ind=0,nz-1) /)*delz + minz
   else
-     z = (/ 0.0_8 /)
+     z = (/ minz /)
   end if
 
   ! Marshall our data to the callback

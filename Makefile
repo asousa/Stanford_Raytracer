@@ -21,12 +21,15 @@ G95 = g95
 
 OBJECTS = ${sources:.f95=.o}
 
-all: raytracer gcpm_dens_model_buildgrid
+all: raytracer gcpm_dens_model_buildgrid dumpmodel
 
 clean:
 	rm -f *.o
 	rm -f *.mod
 	rm -f *.a
+
+dumpmodel: dumpmodel.f95 ${OBJECTS}
+	${G95} ${FLAGS} ${INCLUDES} -o dumpmodel dumpmodel.f95 ${OBJECTS} ${LIBS} 
 
 gcpm_dens_model_buildgrid: gcpm_dens_model_buildgrid.f95 ${OBJECTS}
 	${G95} ${FLAGS} ${INCLUDES} -o gcpm_dens_model_buildgrid gcpm_dens_model_buildgrid.f95 ${OBJECTS} ${LIBS} 
