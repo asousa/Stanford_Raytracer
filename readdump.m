@@ -32,3 +32,4 @@ function [x,y,z,qs,Ns,Ms,nus,B0] = readdump(filename)
   nus = squeeze(dat(3*nspec+1:4*nspec,:,:,:));
   B0 = squeeze(dat(4*nspec+1:end,:,:,:));
   fclose(f);
+  

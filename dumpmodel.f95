@@ -9,7 +9,7 @@ program dumpmodel
        gcpmStateDataInterp, gcpmStateDataInterpP, gcpmsetup=>setup
   implicit none
   
-  character(len=100) :: filename, infile
+  character(len=100) :: filename, gcpm_interpfile, ngo_configfile
   integer,parameter :: outfile=11
   character (len=100) :: buffer
   real*8, allocatable :: x(:), y(:), z(:) 
@@ -51,10 +51,11 @@ program dumpmodel
      
      ! Ngo parameters
      print *, ' Ngo Parameters (required if model 1 is chosen):'
-     print *, '   infile:           grid filename'
+     print *, '   configfile:       newray input filename'
      print *, '   yearday:          year and day, e.g., 1999098'
      print *, '   milliseconds_day: milliseconds of day'
      print *, '   use_tsyganenko:   (1=use, 0=do not use)'
+     print *, '   use_igrf:         (1=use, 0=do not use)'
      print *, '   Pdyn:             between 0.5 and 10 nPa'
      print *, '   Dst:              between -100 and +20 in nT'
      print *, '   ByIMF:            between -10 and +10 nT'
@@ -65,21 +66,22 @@ program dumpmodel
      print *, '   yearday:          year and day, e.g., 1999098'
      print *, '   milliseconds_day: milliseconds of day'
      print *, '   use_tsyganenko:   (1=use, 0=do not use)'
+     print *, '   use_igrf:         (1=use, 0=do not use)'
      print *, '   Pdyn:             between 0.5 and 10 nPa'
      print *, '   Dst:              between -100 and +20 in nT'
      print *, '   ByIMF:            between -10 and +10 nT'
      print *, '   BzIMF:            between -10 and +10 nT'
      ! GCPM interpolated parameters
      print *, ' GCPM interp parameters (required if model 3 is chosen):'
-     print *, '   infile:           grid filename'
+     print *, '   interpfile:       grid filename'
      print *, '   yearday:          year and day, e.g., 1999098'
      print *, '   milliseconds_day: milliseconds of day'
      print *, '   use_tsyganenko:   (1=use, 0=do not use)'
+     print *, '   use_igrf:         (1=use, 0=do not use)'
      print *, '   Pdyn:             between 0.5 and 10 nPa'
      print *, '   Dst:              between -100 and +20 in nT'
      print *, '   ByIMF:            between -10 and +10 nT'
      print *, '   BzIMF:            between -10 and +10 nT'
-
      
      stop
   end if
@@ -158,15 +160,15 @@ program dumpmodel
   print *, '  output filename: ', filename
      
   if( modelnum == 1 ) then
-     !!!!!!!!!!!!!!!!!!!!!!! GCPM SETUP
-     ! GCPM is a complete plasmasphere model.
+     !!!!!!!!!!!!!!!!!!!!!!! Ngo setup
+     ! The Ngo model is the old raytracer plasmasphere model
      nspec=4
      
      ! we need to set up the model paramaters and marshall the setup data
      ! Read the arguments
-     ! kp
+     ! configuration file
      call getarg(12,buffer)
-     read (buffer,*) infile
+     read (buffer,*) ngo_configfile
      ! yearday
      call getarg(13,buffer)
      read (buffer,*) tmpinput
@@ -179,17 +181,21 @@ program dumpmodel
      call getarg(15,buffer)
      read (buffer,*) tmpinput
      ngo_state_data%use_tsyganenko = floor(tmpinput)
-     ! Pdyn
+     ! use_igrf
      call getarg(16,buffer)
+     read (buffer,*) tmpinput
+     ngo_state_data%use_igrf = floor(tmpinput)
+     ! Pdyn
+     call getarg(17,buffer)
      read (buffer,*) ngo_state_data%Pdyn
      ! Dst
-     call getarg(17,buffer)
+     call getarg(18,buffer)
      read (buffer,*) ngo_state_data%Dst
      ! ByIMF
-     call getarg(18,buffer)
+     call getarg(19,buffer)
      read (buffer,*) ngo_state_data%ByIMF
      ! BzIMF
-     call getarg(19,buffer)
+     call getarg(20,buffer)
      read (buffer,*) ngo_state_data%BzIMF
 
      ! Marshall our data to the callback
@@ -201,13 +207,14 @@ program dumpmodel
      data = transfer(ngo_state_dataP, data)
      
      ! Call the setup routine to open a source file
-     call ngosetup(ngo_state_data, 'newray.in')
+     call ngosetup(ngo_state_data, ngo_configfile)
 
      print *, 'Model parameters:'
-     print *, '   infile:           ', filename
+     print *, '   configfile:       ', ngo_configfile
      print *, '   yearday:          ', ngo_state_data%itime(1)
      print *, '   milliseconds_day: ', ngo_state_data%itime(2)
      print *, '   use_tsyganenko:   ', ngo_state_data%use_tsyganenko
+     print *, '   use_igrf:         ', ngo_state_data%use_igrf
      print *, '   Pdyn:             ', ngo_state_data%Pdyn
      print *, '   Dst:              ', ngo_state_data%Dst
      print *, '   ByIMF:            ', ngo_state_data%ByIMF
@@ -250,17 +257,21 @@ program dumpmodel
      call getarg(15,buffer)
      read (buffer,*) tmpinput
      gcpm_state_data%use_tsyganenko = floor(tmpinput)
-     ! Pdyn
+     ! use_igrf
      call getarg(16,buffer)
+     read (buffer,*) tmpinput
+     gcpm_state_data%use_igrf = floor(tmpinput)
+     ! Pdyn
+     call getarg(17,buffer)
      read (buffer,*) gcpm_state_data%Pdyn
      ! Dst
-     call getarg(17,buffer)
+     call getarg(18,buffer)
      read (buffer,*) gcpm_state_data%Dst
      ! ByIMF
-     call getarg(18,buffer)
+     call getarg(19,buffer)
      read (buffer,*) gcpm_state_data%ByIMF
      ! BzIMF
-     call getarg(19,buffer)
+     call getarg(20,buffer)
      read (buffer,*) gcpm_state_data%BzIMF
 
      ! Marshall our data to the callback
@@ -276,6 +287,7 @@ program dumpmodel
      print *, '   yearday:          ', gcpm_state_data%itime(1)
      print *, '   milliseconds_day: ', gcpm_state_data%itime(2)
      print *, '   use_tsyganenko:   ', gcpm_state_data%use_tsyganenko
+     print *, '   use_igrf:         ', gcpm_state_data%use_igrf
      print *, '   Pdyn:             ', gcpm_state_data%Pdyn
      print *, '   Dst:              ', gcpm_state_data%Dst
      print *, '   ByIMF:            ', gcpm_state_data%ByIMF
@@ -305,9 +317,9 @@ program dumpmodel
      
      ! we need to set up the model paramaters and marshall the setup data
      ! Read the arguments
-     ! kp
+     ! interpfile
      call getarg(12,buffer)
-     read (buffer,*) infile
+     read (buffer,*) gcpm_interpfile
      ! yearday
      call getarg(13,buffer)
      read (buffer,*) tmpinput
@@ -320,17 +332,21 @@ program dumpmodel
      call getarg(15,buffer)
      read (buffer,*) tmpinput
      gcpm_state_data_interp%use_tsyganenko = floor(tmpinput)
-     ! Pdyn
+     ! use_igrf
      call getarg(16,buffer)
+     read (buffer,*) tmpinput
+     gcpm_state_data_interp%use_igrf = floor(tmpinput)
+     ! Pdyn
+     call getarg(17,buffer)
      read (buffer,*) gcpm_state_data_interp%Pdyn
      ! Dst
-     call getarg(17,buffer)
+     call getarg(18,buffer)
      read (buffer,*) gcpm_state_data_interp%Dst
      ! ByIMF
-     call getarg(18,buffer)
+     call getarg(19,buffer)
      read (buffer,*) gcpm_state_data_interp%ByIMF
      ! BzIMF
-     call getarg(19,buffer)
+     call getarg(20,buffer)
      read (buffer,*) gcpm_state_data_interp%BzIMF
 
      ! Marshall our data to the callback
@@ -342,10 +358,11 @@ program dumpmodel
      data = transfer(gcpm_state_data_interpP, data)
      
      print *, 'Model parameters:'
-     print *, '   infile:           ', infile
+     print *, '   interpfile:       ', gcpm_interpfile
      print *, '   yearday:          ', gcpm_state_data_interp%itime(1)
      print *, '   milliseconds_day: ', gcpm_state_data_interp%itime(2)
      print *, '   use_tsyganenko:   ', gcpm_state_data_interp%use_tsyganenko
+     print *, '   use_igrf:         ', gcpm_state_data_interp%use_igrf
      print *, '   Pdyn:             ', gcpm_state_data_interp%Pdyn
      print *, '   Dst:              ', gcpm_state_data_interp%Dst
      print *, '   ByIMF:            ', gcpm_state_data_interp%ByIMF
@@ -353,7 +370,7 @@ program dumpmodel
 
      ! Additional model setup
      print *, 'Reading input file'
-     call gcpmsetup(gcpm_state_data_interp, infile)
+     call gcpmsetup(gcpm_state_data_interp, gcpm_interpfile)
      print *, 'Done'
 
      ! Allocate space for the data
