@@ -51,7 +51,7 @@ contains
   subroutine setup( dat, filename )
     character (len=*),intent(in) :: filename
     type(gcpmStateDataInterp),intent(inout) :: dat
-    integer,parameter :: infile=11
+    integer,parameter :: infile=60
     integer :: ind
 
     open(unit=infile, file=filename, status="old")

@@ -10,7 +10,7 @@ program dumpmodel
   implicit none
   
   character(len=100) :: filename, gcpm_interpfile, ngo_configfile
-  integer,parameter :: outfile=11
+  integer,parameter :: outfile=50
   character (len=100) :: buffer
   real*8, allocatable :: x(:), y(:), z(:) 
   integer :: nx,ny,nz, ind, nspec, i,j,k
@@ -35,12 +35,12 @@ program dumpmodel
      print *, 'Usage:'
      print *, '  program minx maxx miny maxy minz maxz nx ny nz filename model (variable paramaters)'
      print *, '  '
-     print *, '  minx: minimum x coordinate in earth radii'
-     print *, '  maxx: maximum x coordinate in earth radii'
-     print *, '  miny: minimum y coordinate in earth radii'
-     print *, '  maxy: maximum y coordinate in earth radii'
-     print *, '  minz: minimum z coordinate in earth radii'
-     print *, '  maxz: maximum z coordinate in earth radii'
+     print *, '  minx: minimum x coordinate'
+     print *, '  maxx: maximum x coordinate'
+     print *, '  miny: minimum y coordinate'
+     print *, '  maxy: maximum y coordinate'
+     print *, '  minz: minimum z coordinate'
+     print *, '  maxz: maximum z coordinate'
      print *, '    nx: number of points in x direction'
      print *, '    ny: number of points in y direction'
      print *, '    nz: number of points in z direction'
@@ -99,13 +99,6 @@ program dumpmodel
   read (buffer,*) minz
   call getarg(6,buffer)
   read (buffer,*) maxz
-
-  minx = minx*R_E
-  maxx = maxx*R_E
-  miny = miny*R_E
-  maxy = maxy*R_E
-  minz = minz*R_E
-  maxz = maxz*R_E
 
   call getarg(7,buffer)
   read (buffer,*) tmpinput

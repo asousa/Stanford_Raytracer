@@ -1,5 +1,13 @@
 .SUFFIXES : .f95 .mod
 
+ifeq "$(OS)" "Windows_NT"
+RM = del
+EXT = .exe
+else
+RM = rm -f
+EXT = 
+endif
+
 sources = \
 	bmodel_dipole.f95 \
 	constants.f95 \
@@ -10,32 +18,31 @@ sources = \
 	raytracer.f95 \
 	util.f95
 
-FLAGS = -g -fbounds-check -ftrace=full -Wall
-#FLAGS = -O3 -Wall
+G95 = g95
+
+FLAGS = -O3 -Wall
 
 INCLUDES = -I../tricubic-for
 
 LIBS = -L../xform_double -lxformd -L../xform -lxform -L../gcpm -lgcpm -L../iri2007 -liri -L../xform -lxform -L../tricubic-for -ltricubic -L../tsyganenko -ltsy
 
-G95 = g95
-
 OBJECTS = ${sources:.f95=.o}
 
-all: raytracer gcpm_dens_model_buildgrid dumpmodel
+all: ../bin/raytracer${EXT} ../bin/gcpm_dens_model_buildgrid${EXT} ../bin/dumpmodel${EXT}
 
 clean:
-	rm -f *.o
-	rm -f *.mod
-	rm -f *.a
+	${RM} *.o
+	${RM} *.mod
+	${RM} *.a
 
-dumpmodel: dumpmodel.f95 ${OBJECTS}
-	${G95} ${FLAGS} ${INCLUDES} -o dumpmodel dumpmodel.f95 ${OBJECTS} ${LIBS} 
+../bin/dumpmodel${EXT}: dumpmodel.f95 ${OBJECTS}
+	${G95} ${FLAGS} ${INCLUDES} -o ../bin/dumpmodel${EXT} dumpmodel.f95 ${OBJECTS} ${LIBS} 
 
-gcpm_dens_model_buildgrid: gcpm_dens_model_buildgrid.f95 ${OBJECTS}
-	${G95} ${FLAGS} ${INCLUDES} -o gcpm_dens_model_buildgrid gcpm_dens_model_buildgrid.f95 ${OBJECTS} ${LIBS} 
+../bin/gcpm_dens_model_buildgrid${EXT}: gcpm_dens_model_buildgrid.f95 ${OBJECTS}
+	${G95} ${FLAGS} ${INCLUDES} -o ../bin/gcpm_dens_model_buildgrid${EXT} gcpm_dens_model_buildgrid.f95 ${OBJECTS} ${LIBS} 
 
-raytracer: raytracer_driver.f95 ${OBJECTS}
-	${G95} ${FLAGS} ${INCLUDES} -o raytracer raytracer_driver.f95 ${OBJECTS} ${LIBS} 
+../bin/raytracer${EXT}: raytracer_driver.f95 ${OBJECTS}
+	${G95} ${FLAGS} ${INCLUDES} -o ../bin/raytracer${EXT} raytracer_driver.f95 ${OBJECTS} ${LIBS} 
 
 bmodel_dipole.f95 : util.o constants.o
 

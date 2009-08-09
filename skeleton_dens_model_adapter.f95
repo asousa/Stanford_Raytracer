@@ -1,18 +1,46 @@
-! This module implements an adapter for the Ngo density model.  It is
-! uniform in azimuth.
-module ngo_dens_model_adapter
+! This is an empty implementation of a density adapter.  Fill in the pieces
+! to adapt this to your own application.
+module skeleton_dens_model_adapter
   use util
   use constants, only : R_E, PI
-  ! The ngo density model doesn't have a proper interface, so 
-  ! just pull the variables we need into scope
-  use ngo_dens_model, only : readinput, dens, ani, z, L, R0
   use bmodel_dipole
   implicit none
 
-  ! Types for marshalling.  This is required since the user of this adapter
-  ! needs to set additional data for this adapter that is not in the 
-  ! interface for funcPlasmaParams() used by the raytracer.
-  type :: ngoStateData
+  ! Types for marshalling.  This is required since the user of this
+  ! adapter often needs to set additional state or configuration data
+  ! for that is not in the interface for funcPlasmaParams() used by
+  ! the raytracer.
+  !
+  ! You can put whatever data you like in here.  Included below are
+  ! some parameters for the Tsyganenko model.  These should be set by
+  ! the caller, associated with a pointer container, also defined
+  ! below, then the pointer container type copied into the data(:)
+  ! parameter with the TRANSFER intrinsic prior to starting the
+  ! raytracer.
+  !
+  ! For example, in the caller, create an instance of the StateData
+  ! type and the pointer container (which will actually be
+  ! marshalled):
+  !
+  !   type(StateData),target :: my_state_data
+  !   type(StateDataP) :: my_state_dataP
+  ! 
+  ! Also create an allocatable character string which will hold the
+  ! marshalled data:
+  !
+  !   character, allocatable :: data(:)
+  ! 
+  ! Then set the parameters in the caller
+  ! (e.g. my_state_data%use_igrf=1).
+  ! 
+  ! Finally, associate the pointer and marshall as follows:
+  ! 
+  !   my_state_dataP%p => my_state_data
+  !   sz = size(transfer(my_state_datap, data))
+  !   allocate(data(sz))
+  !   data = transfer(my_state_dataP, data)
+  ! 
+  type :: StateData
      !	itime	integer*4	dimensions=2
      !		(1) = yearday, e.g. 2001093
      !		(2) = miliseconds of day
@@ -23,29 +51,13 @@ module ngo_dens_model_adapter
      integer*4 :: use_tsyganenko
      ! Whether to use (1) IGRF or not use (0) and use dipole instead
      integer*4 :: use_igrf
-  end type ngoStateData
+  end type StateData
   ! Pointer container type.  This is the data that is actually marshalled.
-  type :: ngoStateDataP 
-     type(ngoStateData), pointer :: p
-  end type ngoStateDataP
-
-  ! Imported from geopack
-  real*4 :: PSI
-  COMMON /GEOPACK1/ PSI
+  type :: StateDataP 
+     type(StateData), pointer :: p
+  end type StateDataP
 
 contains
-
-
-  subroutine setup( dat, filename )
-    character (len=*),intent(in) :: filename
-    type(ngoStateData),intent(inout) :: dat
-    ! So far dat isn't used.  In the future I'd like to make 
-    ! the Ngo model more stateless, or push all the state into dat
-
-    ! Read the input file
-    call readinput(filename)
-
-  end subroutine setup
 
   ! Implementation of the plasma parameters function.
   ! Inputs:
@@ -60,32 +72,30 @@ contains
   subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
     implicit none
 
-    real*8 :: x(3), x_gsm(3)
     real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
     real*8 :: B0(3), B0tmp(3), B0tmp2(3)
     character :: funcPlasmaParamsData(:)
 
-    real*8 :: r, lam, lamr
-    real*8 :: p(3)
-    real*8 :: d2r
     real*8 :: ce,ch,che,co
-
+    real*8 :: x(3),x_gsm(3)
+    
+    ! Tsyganenko parameters
     integer*4 :: year, day, hour, min, sec
-
     real*8 :: parmod(10)
-
     integer*4 :: iopt
+    ! Tsyganenko corrections
     real*4 :: B0xTsy, B0yTsy, B0zTsy
+    ! Base B field 
     real*4 :: B0xBASE, B0yBASE, B0zBASE
 
-    type(ngoStateDataP) :: datap
-
+    type(StateDataP) :: datap
 
     iopt = 0
 
     ! Unmarshall the callback data
     datap = transfer(funcPlasmaParamsData, datap)
 
+    ! Allocate data if not already
     if (.not.(allocated(qs))) then
        allocate(qs(4))
     end if
@@ -98,47 +108,23 @@ contains
     if (.not.(allocated(nus))) then
        allocate(nus(4))
     end if
-
-    ! given x is in SM coordinates, with z parallel to the dipole axis
-    d2r = 2.0_8*pi/360.0_8
-    ! r,theta,phi <- x,y,z
-    ! theta is azimuth
-    ! phi is angle from the z axis
-    p = cartesian_to_spherical(x)
-    ! L = r/(RE*sin^2(phi))
-    if( R_E*sin(p(3))**2.0_8 /= 0.0_8 ) then
-       L = p(1)/(R_E*sin(p(3))**2.0_8)
-    else
-       L = 0.0_8
-    end if
-    ! NOTE lam is in degrees!
-    lam = 90.0_8-(p(3)*360.0_8/2.0_8/pi)
-    lamr = d2r*lam
-
-    r = r0 * L * cos(lamr)**2.0_8 ! geocentric radii for all (L,lam) pairs
-
-    z(1) = r
-    z(2) = d2r*(90.0_8-lam)
     
-    ! update
-    call dens
-    
-    ce = ani(1) ! dissect the answer
-    ch = ani(2)
-    che = ani(3)
-    co = ani(4)
-
-    qs = 1.602e-19_8*(/ -1.0_8, 1.0_8, 1.0_8, 1.0_8 /);
-    ms = (/ 9.10938188e-31_8, 1.6726e-27_8, &
-         4.0_8*1.6726e-27_8, 16.0_8*1.6726e-27_8 /);
-    ! Convert to m^-3;
-    Ns = 1.0e6_8*(/ ce, ch, che, co /);
-    nus = (/ 0.0_8, 0.0_8, 0.0_8, 0.0_8 /);
-
     ! Convert from SM x,y,z to GSM x,y,z needed by 
     ! the Tsyganenko model
     call SM_TO_GSM_d(datap%p%itime,x,x_gsm)
+    
 
+    !!!!!!!!!!!  FILL IN YOUR DENSITY MODEL HERE
+    ! Fill in qs (charge), ms (masses), Ns (number density in m^-3),
+    ! and nus (collision frequency, currently unused), for all species
+    ! of interest
+    qs = (/  /);
+    ms = (/  /);
+    Ns = (/ /);
+    nus = (/ /);
+    !!!!!!!!!!!  END FILL IN YOUR DENSITY MODEL HERE
+
+    
     ! Tsyganenko magnetic field
     
     ! Convert the itime parameter into the Tsyganenko parameters
@@ -187,12 +173,11 @@ contains
     B0tmp(2) = (B0yBASE+B0yTsy)*1.0e-9_8
     B0tmp(3) = (B0zBASE+B0zTsy)*1.0e-9_8
 
-
     ! We're in GSM coordinates.  Rotate back to SM
     call GSM_TO_SM_d(datap%p%itime,B0tmp,B0)
 
-!!$    ! FRF TESTING
-!!$    B0 = bmodel_cartesian( x )
-!!$
+    
   end subroutine funcPlasmaParams
-end module ngo_dens_model_adapter
+
+
+end module skeleton_dens_model_adapter

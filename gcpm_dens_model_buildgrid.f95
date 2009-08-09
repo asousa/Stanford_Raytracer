@@ -6,7 +6,7 @@ program gcpm_dens_model_buildgrid
   use gcpm_dens_model_adapter
   implicit none
 
-  integer,parameter :: outfile = 11
+  integer,parameter :: outfile = 60
   character (len=100) :: buffer
   character (len=100) :: filename
   real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
@@ -41,12 +41,12 @@ program gcpm_dens_model_buildgrid
      print *, 'Usage:'
      print *, '  program minx maxx miny maxy minz maxz nx ny nz compder filename kp yearday milliseconds_day'
      print *, '  '
-     print *, '  minx: minimum x coordinate in earth radii'
-     print *, '  maxx: maximum x coordinate in earth radii'
-     print *, '  miny: minimum y coordinate in earth radii'
-     print *, '  maxy: maximum y coordinate in earth radii'
-     print *, '  minz: minimum z coordinate in earth radii'
-     print *, '  maxz: maximum z coordinate in earth radii'
+     print *, '  minx: minimum x coordinate'
+     print *, '  maxx: maximum x coordinate'
+     print *, '  miny: minimum y coordinate'
+     print *, '  maxy: maximum y coordinate'
+     print *, '  minz: minimum z coordinate'
+     print *, '  maxz: maximum z coordinate'
      print *, '    nx: number of points in x direction'
      print *, '    ny: number of points in y direction'
      print *, '    nz: number of points in z direction'
@@ -73,13 +73,6 @@ program gcpm_dens_model_buildgrid
   call getarg(6,buffer)
   read (buffer,*) maxz
 
-  minx = minx*R_E
-  maxx = maxx*R_E
-  miny = miny*R_E
-  maxy = maxy*R_E
-  minz = minz*R_E
-  maxz = maxz*R_E
-
   call getarg(7,buffer)
   read (buffer,*) tmpinput
   nx = floor(tmpinput)
@@ -103,6 +96,15 @@ program gcpm_dens_model_buildgrid
   call getarg(14, buffer)
   read (buffer,*) tmpinput
   stateData%itime(2) = floor(tmpinput)
+  
+  ! Dummy parameters (unused by this script, so just use the magnetic 
+  ! dipole field instead for speed).
+  stateData%use_tsyganenko = 0
+  stateData%use_igrf = 0
+  stateData%Pdyn = 0.0_8
+  stateData%Dst = 0.0_8
+  stateData%ByIMF = 0.0_8
+  stateData%BzIMF = 0.0_8
   
   ! number of plasma species
   nspec = 4

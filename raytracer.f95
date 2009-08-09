@@ -274,9 +274,11 @@ function raytracer_evalrhs(t, args, root, del, funcPlasmaParams, &
   k = args(4:6)
   w = args(7)
   
-  dfdk = dispersion_relation_dFdk(k, w, x, del, &
+  ! Make del hardcoded for dfdk and dfdw.  dfdx is the one that's really
+  ! strongly model-dependent, since some models use real precision.
+  dfdk = dispersion_relation_dFdk(k, w, x, 1.0e-10_8, &
                                   funcPlasmaParams, funcPlasmaParamsData)
-  dfdw = dispersion_relation_dFdw(k, w, x, del, &
+  dfdw = dispersion_relation_dFdw(k, w, x, 1.0e-10_8, &
                                   funcPlasmaParams, funcPlasmaParamsData)
   dfdx = dispersion_relation_dFdx(k, w, x, del, &
                                   funcPlasmaParams, funcPlasmaParamsData)
@@ -302,22 +304,23 @@ function raytracer_stopconditions(pos, k, w, vprel, vgrel, dt)
   if( sqrt(dot_product(pos,pos)) < R_E ) then
     ! Hit the earth
     raytracer_stopconditions = 1
-    print *, 'Stopping integration.  Hit the earth.'
+    print *, '  Stopping integration.  Hit the earth.'
   elseif( sqrt(dot_product(k,k)) == 0 ) then
     ! Nonsensical k
     raytracer_stopconditions = 2
-    print *, 'Stopping integration.  k=0.'
-  elseif( sqrt(dot_product(vgrel,vgrel)) > 1 ) then
-    ! Faster than light group velocity
+    print *, '  Stopping integration.  k=0.'
+  elseif( sqrt(dot_product(vgrel,vgrel)) > 1.0_8+1e-3_8 ) then
+    ! Faster than light group velocity, with fudge for roundoff error
     raytracer_stopconditions = 3
-    print *, 'Stopping integration.  Nonsensical group velocity.'
+    print *, '  Stopping integration.  Nonsensical group velocity = ', &
+         sqrt(dot_product(vgrel,vgrel))
 !!$  elseif( sqrt(dot_product(vprel,vprel)) > 1 ) then
 !!$    ! Faster than light phase velocity
 !!$    raytracer_stopconditions = 4
 !!$    print *, 'Stopping integration.  Nonsensical phase velocity.'
   elseif( dt < 1e-10 ) then
     ! dt too small
-    print *, 'Stopping integration.  dt too small.'
+    print *, '  Stopping integration.  dt too small.'
     raytracer_stopconditions = 5
   end if
 end function raytracer_stopconditions
@@ -608,14 +611,9 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,stopcond, &
      call move_alloc(tmpsize2, vgrel)
      vgrel(:,size(vgrel,2)) = -(dfdk/dfdw)/C
 
-!!$     fprintf('t=%3.3g, x=(%3.3g,%3.3g,%3.3g), n=(%3.3g,%3.3g,%3.3g), vpr=(%3.3g,%3.3g,%3.3g), vgr=(%3.3g,%3.3g,%3.3g)\n', time(end), pos(1,end), pos(2,end), pos(3,end), n(1,end), n(2,end), n(3,end), vprel(1,end), vprel(2,end), vprel(3,end), vgrel(1,end), vgrel(2,end), vgrel(3,end))
-
-!!$  print '(a, es10.2, a, 3es10.2, a, 3es10.2, a, 3es10.2, a, 3es10.2, a)', 't=', &
-!!$       t, ', x=', pos(:,size(pos,2)), ', n=', n(:,size(n,2)), ', vpr=', &
-!!$       vprel(:,size(vprel,2)), ', vgr=', vgrel(:,size(vgrel,2)), ''
-  print '(es24.15e3, 3es24.15e3, 3es24.15e3, 3es24.15e3, 3es24.15e3)', t, & 
-       pos(:,size(pos,2)), n(:,size(n,2)), vprel(:,size(vprel,2)), &
-       vgrel(:,size(vgrel,2))
+!!$  print '(es24.15e3, 3es24.15e3, 3es24.15e3, 3es24.15e3, 3es24.15e3)', t, & 
+!!$       pos(:,size(pos,2)), n(:,size(n,2)), vprel(:,size(vprel,2)), &
+!!$       vgrel(:,size(vgrel,2))
        
 
   end do;
