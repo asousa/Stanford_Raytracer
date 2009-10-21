@@ -1,7 +1,8 @@
-! This module implements an interpolated adapter for GCPM with a
-! dipole magnetic field in solar magnetic (SM) coordinates.  It
-! expects a filename as an input parameter, in the callback data.
-module gcpm_dens_model_adapter_interp
+! This module implements an interpolated adapter with a dipole
+! magnetic field in solar magnetic (SM) coordinates.  It expects a
+! filename as an input parameter, in the callback data.
+module interp_dens_model_adapter
+  use types
   use util
   use constants, only : R_E, PI
   use bmodel_dipole
@@ -12,37 +13,36 @@ module gcpm_dens_model_adapter_interp
   ! Types for marshalling.  This is required since the user of this adapter
   ! needs to set additional data for this adapter that is not in the 
   ! interface for funcPlasmaParams() used by the raytracer.
-  type :: gcpmStateDataInterp
-     real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
-     real*8 :: delx,dely,delz
-     real*8 :: minx,maxx,miny,maxy,minz,maxz
+  type :: interpStateData
+     real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
+     real(kind=DP) :: delx,dely,delz
+     real(kind=DP) :: minx,maxx,miny,maxy,minz,maxz
      integer :: nx,ny,nz, nspec
      integer :: computederivatives
-     integer*4 :: itime(2)
+     integer :: itime(2)
      
-     real*8, allocatable :: F(:,:,:,:), &
+     real(kind=DP), allocatable :: F(:,:,:,:), &
           dfdx(:,:,:,:), dfdy(:,:,:,:), dfdz(:,:,:,:), & 
           d2fdxdy(:,:,:,:), d2fdxdz(:,:,:,:), d2fdydz(:,:,:,:), &
           d3fdxdydz(:,:,:,:)
-     real*8, allocatable :: x(:), y(:), z(:) 
+     real(kind=DP), allocatable :: x(:), y(:), z(:) 
 
      ! Tsyganenko parameters
-     real*8 :: Pdyn, Dst, ByIMF, BzIMF
+     real(kind=DP) :: Pdyn, Dst, ByIMF, BzIMF
      ! Whether to use (1) or not use (0) the tsyganenko corrections
-     integer*4 :: use_tsyganenko
+     integer :: use_tsyganenko
      ! Whether to use (1) IGRF or not use (0) and use dipole instead
-     integer*4 :: use_igrf
-  end type gcpmStateDataInterp
+     integer :: use_igrf
+  end type interpStateData
 
   ! Pointer container type.  This is the data that is actually marshalled.
-  type :: gcpmStateDataInterpP 
-     type(gcpmStateDataInterp), pointer :: p
-  end type gcpmStateDataInterpP
+  type :: interpStateDataP 
+     type(interpStateData), pointer :: p
+  end type interpStateDataP
 
   ! Imported from geopack
-  real*4 :: PSI
+  real(kind=SP) :: PSI
   COMMON /GEOPACK1/ PSI
-
 
 contains
   ! Setup subroutine.  The caller should first call setup on an instance
@@ -50,7 +50,7 @@ contains
   ! funcPlasmaParamsData on subsequent calls.
   subroutine setup( dat, filename )
     character (len=*),intent(in) :: filename
-    type(gcpmStateDataInterp),intent(inout) :: dat
+    type(interpStateData),intent(inout) :: dat
     integer,parameter :: infile=60
     integer :: ind
 
@@ -80,9 +80,9 @@ contains
     allocate(dat%z(dat%nz))
 
     ! equivalent to linspace
-    dat%delx = (dat%maxx-dat%minx)/(dat%nx-1.0_8)
-    dat%dely = (dat%maxy-dat%miny)/(dat%ny-1.0_8)
-    dat%delz = (dat%maxz-dat%minz)/(dat%nz-1.0_8)
+    dat%delx = (dat%maxx-dat%minx)/(dat%nx-1.0_DP)
+    dat%dely = (dat%maxy-dat%miny)/(dat%ny-1.0_DP)
+    dat%delz = (dat%maxz-dat%minz)/(dat%nz-1.0_DP)
     dat%x = (/ (ind, ind=0,dat%nx-1) /)*dat%delx + dat%minx
     dat%y = (/ (ind, ind=0,dat%ny-1) /)*dat%dely + dat%miny
     dat%z = (/ (ind, ind=0,dat%nz-1) /)*dat%delz + dat%minz
@@ -126,28 +126,29 @@ contains
   !  Ns - vector of species densities in m^-3
   !  ms - vector of species masses in kg
   ! nus - vector of species collisions in s^-1
+  !  B0 - cartesian (SM) background magnetic field in Tesla
   ! In/out:
   ! funcPlasmaParamsData - arbitrary callback data 
   subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
     implicit none
 
-    real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
-    real*8 :: B0(3), B0tmp(3), B0tmp2(3)
+    real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
+    real(kind=DP) :: B0(3), B0tmp(3), B0tmp2(3)
     character :: funcPlasmaParamsData(:)
-    real*8 :: ce,ch,che,co
-    real*8 :: x(3),x_gsm(3)
-    real*8 :: outn(4)
+    real(kind=DP) :: ce,ch,che,co
+    real(kind=DP) :: x(3),x_gsm(3)
+    real(kind=DP) :: outn(4)
     integer :: ind
     
-    integer*4 :: year, day, hour, min, sec
+    integer :: year, day, hour, min, sec
 
-    real*8 :: parmod(10)
+    real(kind=DP) :: parmod(10)
 
-    integer*4 :: iopt
-    real*4 :: B0xTsy, B0yTsy, B0zTsy
-    real*4 :: B0xBASE, B0yBASE, B0zBASE
+    integer :: iopt
+    real(kind=SP) :: B0xTsy, B0yTsy, B0zTsy
+    real(kind=SP) :: B0xBASE, B0yBASE, B0zBASE
 
-    type(gcpmStateDataInterpP) :: datap
+    type(interpStateDataP) :: datap
 
     if (.not.(allocated(qs))) then
        allocate(qs(4))
@@ -191,12 +192,12 @@ contains
     ch = exp(outn(2))
     che = exp(outn(3))
     co = exp(outn(4))
-    qs = 1.602e-19_8*(/ -1.0_8, 1.0_8, 1.0_8, 1.0_8 /)
-    ms = (/ 9.10938188e-31_8, 1.6726e-27_8, &
-         4.0_8*1.6726e-27_8, 16.0_8*1.6726e-27_8 /)
+    qs = 1.602e-19_DP*(/ -1.0_DP, 1.0_DP, 1.0_DP, 1.0_DP /)
+    ms = (/ 9.10938188e-31_DP, 1.6726e-27_DP, &
+         4.0_DP*1.6726e-27_DP, 16.0_DP*1.6726e-27_DP /)
     ! Ns is already in m^-3
     Ns = (/ ce, ch, che, co /)
-    nus = (/ 0.0_8, 0.0_8, 0.0_8, 0.0_8 /)
+    nus = (/ 0.0_DP, 0.0_DP, 0.0_DP, 0.0_DP /)
 
     ! Tsyganenko magnetic field
     
@@ -226,9 +227,9 @@ contains
        B0tmp = bmodel_cartesian( x )
        ! Rotate to GSM and convert to nT for convenience with below
        call SM_TO_GSM_d(datap%p%itime,B0tmp,B0tmp2)
-       B0xBASE = real(1.0e9_8*B0tmp2(1))
-       B0yBASE = real(1.0e9_8*B0tmp2(2))
-       B0zBASE = real(1.0e9_8*B0tmp2(3))
+       B0xBASE = real(1.0e9_DP*B0tmp2(1))
+       B0yBASE = real(1.0e9_DP*B0tmp2(2))
+       B0zBASE = real(1.0e9_DP*B0tmp2(3))
     end if
     if( datap%p%use_tsyganenko == 1 ) then
        call T96_01( iopt, real(parmod), real(psi), &
@@ -242,9 +243,9 @@ contains
        
     ! Add the GSM and Tsyganenko corrections together and convert from
     ! nT to T
-    B0tmp(1) = (B0xBASE+B0xTsy)*1.0e-9_8
-    B0tmp(2) = (B0yBASE+B0yTsy)*1.0e-9_8
-    B0tmp(3) = (B0zBASE+B0zTsy)*1.0e-9_8
+    B0tmp(1) = (B0xBASE+B0xTsy)*1.0e-9_DP
+    B0tmp(2) = (B0yBASE+B0yTsy)*1.0e-9_DP
+    B0tmp(3) = (B0zBASE+B0zTsy)*1.0e-9_DP
 
     ! We're in GSM coordinates.  Rotate back to SM
     call GSM_TO_SM_d(datap%p%itime,B0tmp,B0)
@@ -252,4 +253,4 @@ contains
   end subroutine funcPlasmaParams
 
 
-end module gcpm_dens_model_adapter_interp
+end module interp_dens_model_adapter

@@ -1,9 +1,10 @@
 module constants
+use types
 
-real*8, parameter :: EPS0 = 8.854187817e-12_8
-real*8, parameter :: PI = 3.141592653589793238462643_8
-real*8, parameter :: MU0 = PI * 4e-7_8
-real*8, parameter :: C = sqrt(1/EPS0/MU0)
-real*8, parameter :: R_E = 6371.2e3_8
+real(kind=DP), parameter :: EPS0 = 8.854187817e-12_DP
+real(kind=DP), parameter :: PI = 3.141592653589793238462643_DP
+real(kind=DP), parameter :: MU0 = PI * 4e-7_DP
+real(kind=DP), parameter :: C = sqrt(1.0_DP/EPS0/MU0)
+real(kind=DP), parameter :: R_E = 6371.2e3_DP
 
 end module constants

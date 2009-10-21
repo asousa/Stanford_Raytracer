@@ -9,24 +9,24 @@ program gcpm_dens_model_buildgrid
   integer,parameter :: outfile = 60
   character (len=100) :: buffer
   character (len=100) :: filename
-  real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
-  real*8 :: B0(3)
-  real*8 :: dx(3),dy(3),dz(3), delx,dely,delz, pos(3)
+  real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
+  real(kind=DP) :: B0(3)
+  real(kind=DP) :: dx(3),dy(3),dz(3), delx,dely,delz, pos(3)
   integer :: nx,ny,nz, nspec
 
-  real*8, allocatable :: F(:,:,:,:), &
+  real(kind=DP), allocatable :: F(:,:,:,:), &
        dfdx(:,:,:,:), dfdy(:,:,:,:), dfdz(:,:,:,:), & 
        d2fdxdy(:,:,:,:), d2fdxdz(:,:,:,:), d2fdydz(:,:,:,:), &
        d3fdxdydz(:,:,:,:)
-  real*8, allocatable :: x(:), y(:), z(:) 
+  real(kind=DP), allocatable :: x(:), y(:), z(:) 
 
   character, allocatable :: data(:)
-  real*8 :: minx,maxx, miny,maxy, minz,maxz
-  real*8 :: d,dfact
+  real(kind=DP) :: minx,maxx, miny,maxy, minz,maxz
+  real(kind=DP) :: d,dfact
   
   integer :: ind, i,j,k
-  real*8,allocatable :: tmp(:)
-  real*8 :: tmpinput
+  real(kind=DP),allocatable :: tmp(:)
+  real(kind=DP) :: tmpinput
 
   integer :: sz
   
@@ -101,10 +101,10 @@ program gcpm_dens_model_buildgrid
   ! dipole field instead for speed).
   stateData%use_tsyganenko = 0
   stateData%use_igrf = 0
-  stateData%Pdyn = 0.0_8
-  stateData%Dst = 0.0_8
-  stateData%ByIMF = 0.0_8
-  stateData%BzIMF = 0.0_8
+  stateData%Pdyn = 0.0_DP
+  stateData%Dst = 0.0_DP
+  stateData%ByIMF = 0.0_DP
+  stateData%BzIMF = 0.0_DP
   
   ! number of plasma species
   nspec = 4
@@ -130,9 +130,9 @@ program gcpm_dens_model_buildgrid
   end if
 
   ! equivalent to linspace
-  delx = (maxx-minx)/(nx-1.0_8)
-  dely = (maxy-miny)/(ny-1.0_8)
-  delz = (maxz-minz)/(nz-1.0_8)
+  delx = (maxx-minx)/(nx-1.0_DP)
+  dely = (maxy-miny)/(ny-1.0_DP)
+  delz = (maxz-minz)/(nz-1.0_DP)
   if( nx /= 1 ) then
      x = (/ (ind, ind=0,nx-1) /)*delx + minx
   else
@@ -160,7 +160,7 @@ program gcpm_dens_model_buildgrid
 
   ! build the output array
   ! Such a large number is necessary for single precision
-  dfact = 1.0e-3_8
+  dfact = 1.0e-3_DP
   do k=1,nz
      do j=1,ny
         do i=1,nx
@@ -170,15 +170,15 @@ program gcpm_dens_model_buildgrid
            pos = (/ x(i), y(j), z(k) /)
            d=dfact*sqrt(dot_product(pos, pos))
            if( d == 0 ) then
-              d = 1.0e-3_8
+              d = 1.0e-3_DP
            end if
 
            ! Interpolate in log space instead.  The gradients are
            ! pretty large otherwise, and the interpolation quality
            ! suffers.
-           dx = d*(/ 1.0_8,0.0_8,0.0_8 /)
-           dy = d*(/ 0.0_8,1.0_8,0.0_8 /)
-           dz = d*(/ 0.0_8,0.0_8,1.0_8 /)
+           dx = d*(/ 1.0_DP,0.0_DP,0.0_DP /)
+           dy = d*(/ 0.0_DP,1.0_DP,0.0_DP /)
+           dz = d*(/ 0.0_DP,0.0_DP,1.0_DP /)
            ! f
            call funcPlasmaParams(pos, &
                 qs, Ns, ms, nus, B0, data)
@@ -195,7 +195,7 @@ program gcpm_dens_model_buildgrid
               call funcPlasmaParams(pos-dx, &
                    qs, Ns, ms, nus, B0, data)
               tmp = tmp - log(Ns)
-              tmp = tmp/d/2.0_8
+              tmp = tmp/d/2.0_DP
               dfdx(:,i,j,k) = tmp
               ! df/dy
               call funcPlasmaParams(pos+dy, &
@@ -204,14 +204,14 @@ program gcpm_dens_model_buildgrid
               call funcPlasmaParams(pos-dy, &
                    qs, Ns, ms, nus, B0, data)
               tmp = tmp - log(Ns)
-              tmp = tmp/d/2.0_8
+              tmp = tmp/d/2.0_DP
               dfdy(:,i,j,k) = tmp
               ! df/dz
               call funcPlasmaParams(pos+dz, qs, Ns, ms, nus, B0, data)
               tmp = log(Ns)
               call funcPlasmaParams(pos-dz, qs, Ns, ms, nus, B0, data)
               tmp = tmp - log(Ns)
-              tmp = tmp/d/2.0_8
+              tmp = tmp/d/2.0_DP
               dfdz(:,i,j,k) = tmp
               ! d2f/dx/dy
               call funcPlasmaParams(pos+dx+dy, qs, Ns, ms, nus, B0, data)
@@ -222,7 +222,7 @@ program gcpm_dens_model_buildgrid
               tmp = tmp - log(Ns)
               call funcPlasmaParams(pos-dx-dy, qs, Ns, ms, nus, B0, data)
               tmp = tmp + log(Ns)
-              tmp = tmp/d/d/4.0_8
+              tmp = tmp/d/d/4.0_DP
               d2fdxdy(:,i,j,k) = tmp
               ! d2f/dx/dz
               call funcPlasmaParams(pos+dx+dz, qs, Ns, ms, nus, B0, data)
@@ -233,7 +233,7 @@ program gcpm_dens_model_buildgrid
               tmp = tmp - log(Ns)
               call funcPlasmaParams(pos-dx-dz, qs, Ns, ms, nus, B0, data)
               tmp = tmp + log(Ns)
-              tmp = tmp/d/d/4.0_8
+              tmp = tmp/d/d/4.0_DP
               d2fdxdz(:,i,j,k) = tmp
               ! d2f/dy/dz
               call funcPlasmaParams(pos+dy+dz, qs, Ns, ms, nus, B0, data)
@@ -244,7 +244,7 @@ program gcpm_dens_model_buildgrid
               tmp = tmp - log(Ns)
               call funcPlasmaParams(pos-dy-dz, qs, Ns, ms, nus, B0, data)
               tmp = tmp + log(Ns)
-              tmp = tmp/d/d/4.0_8
+              tmp = tmp/d/d/4.0_DP
               d2fdydz(:,i,j,k) = tmp
               ! d3f/dx/dy/dz
               call funcPlasmaParams(pos+dx+dy+dz, qs, Ns, ms, nus, B0, data)
@@ -263,7 +263,7 @@ program gcpm_dens_model_buildgrid
               tmp = tmp + log(Ns)
               call funcPlasmaParams(pos-dx-dy-dz, qs, Ns, ms, nus, B0, data)
               tmp = tmp - log(Ns)
-              tmp = tmp/d/d/d/8.0_8
+              tmp = tmp/d/d/d/8.0_DP
               d3fdxdydz(:,i,j,k) = tmp
            end if
         end do

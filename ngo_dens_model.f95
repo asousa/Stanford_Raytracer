@@ -2,25 +2,25 @@ module ngo_dens_model
   use util
   use constants, only : R_E
 
-  implicit real*8 (a-h)
-  implicit real*8 (o-z)
+  implicit real(kind=DP) (a-h)
+  implicit real(kind=DP) (o-z)
 
- real*8 :: xdra(2000),ydra(2000)
- real*8 :: l,l0(10),lk,latitu,grarad,gf,latmax,latmin
+ real(kind=DP) :: xdra(2000),ydra(2000)
+ real(kind=DP) :: l,l0(10),lk,latitu,grarad,gf,latmax,latmin
  
  
  integer :: nreson, ndecre, numres
- real*8 ::  freq, altinj
- real*8 :: xtime0(2), xtime1(2)
+ real(kind=DP) ::  freq, altinj
+ real(kind=DP) :: xtime0(2), xtime1(2)
  integer :: nsuppr
- real*8 :: a,absb,al,alpha(4),alpha0(4),am,an,an1,an2,ane0,ani(4)
- real*8 :: ap,apl,apr,aps,ar,arl,as,b,c,cosz2,cosz22,cpsi,cpsi2,dd(10),ddk
- real*8 :: def(10),delt,dlgndr(4),dlgndt(4),egfeq,expk,f0e,fkc,h,hmin
- real*8 :: pi,print,psi,psires,r0,radgra,rbase,rconsn,rdiv,relb
- real*8 :: rstop,rzero,scbot,scr,sidedu(10),sinz2,sinz22,spsi,spsi2,tgfina
- real*8 :: therm,tiniti,x(4),x0(5),y(4),y01,y02,z(5),clight,consf0
- real*8 :: hl2n(10),hl2s(10),hu2n(10),hu2s(10),rducln(10),rducls(10)
- real*8 :: rducun(10),rducus(10),durbe,refalt,hmax
+ real(kind=DP) :: a,absb,al,alpha(4),alpha0(4),am,an,an1,an2,ane0,ani(4)
+ real(kind=DP) :: ap,apl,apr,aps,ar,arl,as,b,c,cosz2,cosz22,cpsi,cpsi2,dd(10),ddk
+ real(kind=DP) :: def(10),delt,dlgndr(4),dlgndt(4),egfeq,expk,f0e,fkc,h,hmin
+ real(kind=DP) :: pi,print,psi,psires,r0,radgra,rbase,rconsn,rdiv,relb
+ real(kind=DP) :: rstop,rzero,scbot,scr,sidedu(10),sinz2,sinz22,spsi,spsi2,tgfina
+ real(kind=DP) :: therm,tiniti,x(4),x0(5),y(4),y01,y02,z(5),clight,consf0
+ real(kind=DP) :: hl2n(10),hl2s(10),hu2n(10),hu2s(10),rducln(10),rducls(10)
+ real(kind=DP) :: rducun(10),rducus(10),durbe,refalt,hmax
  integer :: init,kducts,kinit,kj,kount,kr,kskip,kt,ktape,lines,mode,num,numray
 
 contains
@@ -44,11 +44,14 @@ contains
 
       open (unit=4, file=filename, status='old')
 
-      zero = 0.0
+! FRF UNUSED
+!      zero = 0.0
       radgra = 180./pi
       grarad = 1./radgra
       am = 1.67252e-27 / 9.10955854e-31
       read (4,*) intera, numres, nsuppr, spelat
+! FRF UNUSED
+      spelat = spelat
       if (intera .eq. 0) goto 50
    50 kinit=2
       init=-1
@@ -92,8 +95,11 @@ contains
       read(4,*,end=9501) num,kskip,mode,kount,kducts,ktape,refalt,dsrrng,dsrlat,dsdens
           if (num .eq. 0) go to 9501
 
-          kfile=ktape
+! FRF UNUSED
+!          kfile=ktape
           read (4,*,end=9501) egfeq,therm,hm,absb,relb
+! FRF UNUSED hm
+          hm = hm
           read (4,*,end=9501) rbase,ane0,(alpha0(i),i=2,4)
           read (4,*,end=9501) rzero,scbot,rstop,rdiv,hmin
 

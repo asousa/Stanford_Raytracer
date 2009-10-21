@@ -41,16 +41,16 @@ module skeleton_dens_model_adapter
   !   data = transfer(my_state_dataP, data)
   ! 
   type :: StateData
-     !	itime	integer*4	dimensions=2
+     !	itime	integer	dimensions=2
      !		(1) = yearday, e.g. 2001093
      !		(2) = miliseconds of day
-     integer*4 :: itime(2)
+     integer :: itime(2)
      ! Tsyganenko parameters
-     real*8 :: Pdyn, Dst, ByIMF, BzIMF
+     real(kind=DP) :: Pdyn, Dst, ByIMF, BzIMF
      ! Whether to use (1) or not use (0) the tsyganenko corrections
-     integer*4 :: use_tsyganenko
+     integer :: use_tsyganenko
      ! Whether to use (1) IGRF or not use (0) and use dipole instead
-     integer*4 :: use_igrf
+     integer :: use_igrf
   end type StateData
   ! Pointer container type.  This is the data that is actually marshalled.
   type :: StateDataP 
@@ -67,26 +67,27 @@ contains
   !  Ns - vector of species densities in m^-3
   !  ms - vector of species masses in kg
   ! nus - vector of species collisions in s^-1
+  !  B0 - cartesian (SM) background magnetic field in Tesla
   ! In/out:
   ! funcPlasmaParamsData - arbitrary callback data 
   subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
     implicit none
 
-    real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
-    real*8 :: B0(3), B0tmp(3), B0tmp2(3)
+    real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
+    real(kind=DP) :: B0(3), B0tmp(3), B0tmp2(3)
     character :: funcPlasmaParamsData(:)
 
-    real*8 :: ce,ch,che,co
-    real*8 :: x(3),x_gsm(3)
+    real(kind=DP) :: ce,ch,che,co
+    real(kind=DP) :: x(3),x_gsm(3)
     
     ! Tsyganenko parameters
-    integer*4 :: year, day, hour, min, sec
-    real*8 :: parmod(10)
-    integer*4 :: iopt
+    integer :: year, day, hour, min, sec
+    real(kind=DP) :: parmod(10)
+    integer :: iopt
     ! Tsyganenko corrections
-    real*4 :: B0xTsy, B0yTsy, B0zTsy
+    real(kind=SP) :: B0xTsy, B0yTsy, B0zTsy
     ! Base B field 
-    real*4 :: B0xBASE, B0yBASE, B0zBASE
+    real(kind=SP) :: B0xBASE, B0yBASE, B0zBASE
 
     type(StateDataP) :: datap
 
@@ -153,9 +154,9 @@ contains
        B0tmp = bmodel_cartesian( x )
        ! Rotate to GSM and convert to nT for convenience with below
        call SM_TO_GSM_d(datap%p%itime,B0tmp,B0tmp2)
-       B0xBASE = real(1.0e9_8*B0tmp2(1))
-       B0yBASE = real(1.0e9_8*B0tmp2(2))
-       B0zBASE = real(1.0e9_8*B0tmp2(3))
+       B0xBASE = real(1.0e9_DP*B0tmp2(1))
+       B0yBASE = real(1.0e9_DP*B0tmp2(2))
+       B0zBASE = real(1.0e9_DP*B0tmp2(3))
     end if
     if( datap%p%use_tsyganenko == 1 ) then
        call T96_01( iopt, real(parmod), real(psi), &
@@ -169,9 +170,9 @@ contains
        
     ! Add the field and Tsyganenko corrections together and convert from
     ! nT to T
-    B0tmp(1) = (B0xBASE+B0xTsy)*1.0e-9_8
-    B0tmp(2) = (B0yBASE+B0yTsy)*1.0e-9_8
-    B0tmp(3) = (B0zBASE+B0zTsy)*1.0e-9_8
+    B0tmp(1) = (B0xBASE+B0xTsy)*1.0e-9_DP
+    B0tmp(2) = (B0yBASE+B0yTsy)*1.0e-9_DP
+    B0tmp(3) = (B0zBASE+B0zTsy)*1.0e-9_DP
 
     ! We're in GSM coordinates.  Rotate back to SM
     call GSM_TO_SM_d(datap%p%itime,B0tmp,B0)

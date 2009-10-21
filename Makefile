@@ -11,12 +11,13 @@ endif
 sources = \
 	bmodel_dipole.f95 \
 	constants.f95 \
+	types.f95 \
 	gcpm_dens_model_adapter.f95 \
-	gcpm_dens_model_adapter_interp.f95 \
+	interp_dens_model_adapter.f95 \
 	ngo_dens_model.f95 \
 	ngo_dens_model_adapter.f95 \
+	util.f95 \
 	raytracer.f95 \
-	util.f95
 
 G95 = g95
 
@@ -44,17 +45,23 @@ clean:
 ../bin/raytracer${EXT}: raytracer_driver.f95 ${OBJECTS}
 	${G95} ${FLAGS} ${INCLUDES} -o ../bin/raytracer${EXT} raytracer_driver.f95 ${OBJECTS} ${LIBS} 
 
-bmodel_dipole.f95 : util.o constants.o
+bmodel_dipole.f95 : util.o constants.o types.o
 
-gcpm_dens_model_adapter.f95 : util.o constants.o bmodel_dipole.o
+gcpm_dens_model_adapter.f95 : util.o constants.o bmodel_dipole.o types.o
 
-ngo_dens_model.f95 : util.o constants.o 
+interp_dens_model_adapter.f95 : util.o constants.o bmodel_dipole.o types.o
 
-ngo_dens_model_adapter.f95 : util.o constants.o ngo_dens_model.o bmodel_dipole.o
+ngo_dens_model.f95 : util.o constants.o types.o
 
-raytracer.f95 : util.o constants.o
+ngo_dens_model_adapter.f95 : util.o constants.o ngo_dens_model.o bmodel_dipole.o types.o
 
-raytracer_driver.f95 : ngo_dens_model_adapter.o gcpm_dens_model_adapter.o raytracer.o bmodel_dipole.o util.o constants.o 
+raytracer.f95 : util.o constants.o types.o
+
+raytracer_driver.f95 : ngo_dens_model_adapter.o gcpm_dens_model_adapter.o raytracer.o bmodel_dipole.o util.o constants.o types.o
+
+constants.f95 : types.o
+
+util.f95 : types.o
 
 %.o : %.mod  
 

@@ -1,6 +1,7 @@
 ! This module implements an adapter for the Ngo density model.  It is
 ! uniform in azimuth.
 module ngo_dens_model_adapter
+  use types
   use util
   use constants, only : R_E, PI
   ! The ngo density model doesn't have a proper interface, so 
@@ -13,16 +14,16 @@ module ngo_dens_model_adapter
   ! needs to set additional data for this adapter that is not in the 
   ! interface for funcPlasmaParams() used by the raytracer.
   type :: ngoStateData
-     !	itime	integer*4	dimensions=2
+     !	itime	integer	dimensions=2
      !		(1) = yearday, e.g. 2001093
      !		(2) = miliseconds of day
-     integer*4 :: itime(2)
+     integer :: itime(2)
      ! Tsyganenko parameters
-     real*8 :: Pdyn, Dst, ByIMF, BzIMF
+     real(kind=DP) :: Pdyn, Dst, ByIMF, BzIMF
      ! Whether to use (1) or not use (0) the tsyganenko corrections
-     integer*4 :: use_tsyganenko
+     integer :: use_tsyganenko
      ! Whether to use (1) IGRF or not use (0) and use dipole instead
-     integer*4 :: use_igrf
+     integer :: use_igrf
   end type ngoStateData
   ! Pointer container type.  This is the data that is actually marshalled.
   type :: ngoStateDataP 
@@ -30,7 +31,7 @@ module ngo_dens_model_adapter
   end type ngoStateDataP
 
   ! Imported from geopack
-  real*4 :: PSI
+  real(kind=SP) :: PSI
   COMMON /GEOPACK1/ PSI
 
 contains
@@ -55,28 +56,29 @@ contains
   !  Ns - vector of species densities in m^-3
   !  ms - vector of species masses in kg
   ! nus - vector of species collisions in s^-1
+  !  B0 - cartesian (SM) background magnetic field in Tesla
   ! In/out:
   ! funcPlasmaParamsData - arbitrary callback data 
   subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
     implicit none
 
-    real*8 :: x(3), x_gsm(3)
-    real*8, allocatable :: qs(:), Ns(:), ms(:), nus(:)
-    real*8 :: B0(3), B0tmp(3), B0tmp2(3)
+    real(kind=DP) :: x(3), x_gsm(3)
+    real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
+    real(kind=DP) :: B0(3), B0tmp(3), B0tmp2(3)
     character :: funcPlasmaParamsData(:)
 
-    real*8 :: r, lam, lamr
-    real*8 :: p(3)
-    real*8 :: d2r
-    real*8 :: ce,ch,che,co
+    real(kind=DP) :: r, lam, lamr
+    real(kind=DP) :: p(3)
+    real(kind=DP) :: d2r
+    real(kind=DP) :: ce,ch,che,co
 
-    integer*4 :: year, day, hour, min, sec
+    integer :: year, day, hour, min, sec
 
-    real*8 :: parmod(10)
+    real(kind=DP) :: parmod(10)
 
-    integer*4 :: iopt
-    real*4 :: B0xTsy, B0yTsy, B0zTsy
-    real*4 :: B0xBASE, B0yBASE, B0zBASE
+    integer :: iopt
+    real(kind=SP) :: B0xTsy, B0yTsy, B0zTsy
+    real(kind=SP) :: B0xBASE, B0yBASE, B0zBASE
 
     type(ngoStateDataP) :: datap
 
@@ -100,25 +102,25 @@ contains
     end if
 
     ! given x is in SM coordinates, with z parallel to the dipole axis
-    d2r = 2.0_8*pi/360.0_8
+    d2r = 2.0_DP*pi/360.0_DP
     ! r,theta,phi <- x,y,z
     ! theta is azimuth
     ! phi is angle from the z axis
     p = cartesian_to_spherical(x)
     ! L = r/(RE*sin^2(phi))
-    if( R_E*sin(p(3))**2.0_8 /= 0.0_8 ) then
-       L = p(1)/(R_E*sin(p(3))**2.0_8)
+    if( R_E*sin(p(3))**2.0_DP /= 0.0_DP ) then
+       L = p(1)/(R_E*sin(p(3))**2.0_DP)
     else
-       L = 0.0_8
+       L = 0.0_DP
     end if
     ! NOTE lam is in degrees!
-    lam = 90.0_8-(p(3)*360.0_8/2.0_8/pi)
+    lam = 90.0_DP-(p(3)*360.0_DP/2.0_DP/pi)
     lamr = d2r*lam
 
-    r = r0 * L * cos(lamr)**2.0_8 ! geocentric radii for all (L,lam) pairs
+    r = r0 * L * cos(lamr)**2.0_DP ! geocentric radii for all (L,lam) pairs
 
     z(1) = r
-    z(2) = d2r*(90.0_8-lam)
+    z(2) = d2r*(90.0_DP-lam)
     
     ! update
     call dens
@@ -128,12 +130,12 @@ contains
     che = ani(3)
     co = ani(4)
 
-    qs = 1.602e-19_8*(/ -1.0_8, 1.0_8, 1.0_8, 1.0_8 /);
-    ms = (/ 9.10938188e-31_8, 1.6726e-27_8, &
-         4.0_8*1.6726e-27_8, 16.0_8*1.6726e-27_8 /);
+    qs = 1.602e-19_DP*(/ -1.0_DP, 1.0_DP, 1.0_DP, 1.0_DP /);
+    ms = (/ 9.10938188e-31_DP, 1.6726e-27_DP, &
+         4.0_DP*1.6726e-27_DP, 16.0_DP*1.6726e-27_DP /);
     ! Convert to m^-3;
-    Ns = 1.0e6_8*(/ ce, ch, che, co /);
-    nus = (/ 0.0_8, 0.0_8, 0.0_8, 0.0_8 /);
+    Ns = 1.0e6_DP*(/ ce, ch, che, co /);
+    nus = (/ 0.0_DP, 0.0_DP, 0.0_DP, 0.0_DP /);
 
     ! Convert from SM x,y,z to GSM x,y,z needed by 
     ! the Tsyganenko model
@@ -167,9 +169,9 @@ contains
        B0tmp = bmodel_cartesian( x )
        ! Rotate to GSM and convert to nT for convenience with below
        call SM_TO_GSM_d(datap%p%itime,B0tmp,B0tmp2)
-       B0xBASE = real(1.0e9_8*B0tmp2(1))
-       B0yBASE = real(1.0e9_8*B0tmp2(2))
-       B0zBASE = real(1.0e9_8*B0tmp2(3))
+       B0xBASE = real(1.0e9_DP*B0tmp2(1))
+       B0yBASE = real(1.0e9_DP*B0tmp2(2))
+       B0zBASE = real(1.0e9_DP*B0tmp2(3))
     end if
     if( datap%p%use_tsyganenko == 1 ) then
        call T96_01( iopt, real(parmod), real(psi), &
@@ -183,9 +185,9 @@ contains
        
     ! Add the field and Tsyganenko corrections together and convert from
     ! nT to T
-    B0tmp(1) = (B0xBASE+B0xTsy)*1.0e-9_8
-    B0tmp(2) = (B0yBASE+B0yTsy)*1.0e-9_8
-    B0tmp(3) = (B0zBASE+B0zTsy)*1.0e-9_8
+    B0tmp(1) = (B0xBASE+B0xTsy)*1.0e-9_DP
+    B0tmp(2) = (B0yBASE+B0yTsy)*1.0e-9_DP
+    B0tmp(3) = (B0zBASE+B0zTsy)*1.0e-9_DP
 
 
     ! We're in GSM coordinates.  Rotate back to SM
