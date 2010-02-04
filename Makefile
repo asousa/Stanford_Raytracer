@@ -19,8 +19,6 @@ sources = \
 	util.f95 \
 	raytracer.f95 \
 
-G95 = g95
-
 FLAGS = -O3 -Wall
 
 INCLUDES = -I../tricubic-for

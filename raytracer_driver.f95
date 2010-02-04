@@ -14,7 +14,8 @@ program raytracer_driver
   real(kind=DP) :: pos0(3), w, dir0(3), dt0, dtmax, maxerr, tmax
   integer :: fixedstep, root
 
-  real(kind=DP), allocatable :: pos(:,:), time(:), vprel(:,:), vgrel(:,:), n(:,:)
+  real(kind=DP), allocatable :: pos(:,:), time(:), vprel(:,:), vgrel(:,:), &
+                                n(:,:), B0(:,:)
   integer :: stopcond, i, maxsteps
 
   real(kind=DP) :: del
@@ -168,7 +169,7 @@ program raytracer_driver
      ! configuration file
      call getopt_named( 'ngo_configfile', buffer, foundopt )
      if( foundopt == 1 ) then
-        read (buffer,*) ngo_configfile
+        read (buffer,'(a)') ngo_configfile
      end if
      ! yearday
      call getopt_named( 'yearday', buffer, foundopt )
@@ -306,10 +307,10 @@ program raytracer_driver
      print *, '   milliseconds_day: ', gcpm_state_data%itime(2)
      print *, '   use_tsyganenko:   ', gcpm_state_data%use_tsyganenko
      print *, '   use_igrf:         ', gcpm_state_data%use_igrf
-     print *, '   tsyganenko_Pdyn:  ', ngo_state_data%Pdyn
-     print *, '   tsyganenko_Dst:   ', ngo_state_data%Dst
-     print *, '   tsyganenko_ByIMF: ', ngo_state_data%ByIMF
-     print *, '   tsyganenko_BzIMF: ', ngo_state_data%BzIMF
+     print *, '   tsyganenko_Pdyn:  ', gcpm_state_data%Pdyn
+     print *, '   tsyganenko_Dst:   ', gcpm_state_data%Dst
+     print *, '   tsyganenko_ByIMF: ', gcpm_state_data%ByIMF
+     print *, '   tsyganenko_BzIMF: ', gcpm_state_data%BzIMF
 
   elseif( modelnum == 3 ) then
      !!!!!!!!!!!!!!!!!!!!!!! INTERPOLATED SETUP
@@ -321,7 +322,7 @@ program raytracer_driver
      ! Read the arguments
      call getopt_named( 'interp_interpfile', buffer, foundopt )
      if( foundopt == 1 ) then
-        read (buffer,*) interp_interpfile
+        read (buffer,'(a)') interp_interpfile
      end if
      ! yearday
      call getopt_named( 'yearday', buffer, foundopt )
@@ -382,10 +383,10 @@ program raytracer_driver
      print *, '   milliseconds_day: ', interp_state_data%itime(2)
      print *, '   use_tsyganenko:   ', interp_state_data%use_tsyganenko
      print *, '   use_igrf:         ', interp_state_data%use_igrf
-     print *, '   tsyganenko_Pdyn:  ', ngo_state_data%Pdyn
-     print *, '   tsyganenko_Dst:   ', ngo_state_data%Dst
-     print *, '   tsyganenko_ByIMF: ', ngo_state_data%ByIMF
-     print *, '   tsyganenko_BzIMF: ', ngo_state_data%BzIMF
+     print *, '   tsyganenko_Pdyn:  ', interp_state_data%Pdyn
+     print *, '   tsyganenko_Dst:   ', interp_state_data%Dst
+     print *, '   tsyganenko_ByIMF: ', interp_state_data%ByIMF
+     print *, '   tsyganenko_BzIMF: ', interp_state_data%BzIMF
 
      ! Additional model setup
      print *, 'Reading input file'
@@ -408,24 +409,24 @@ program raytracer_driver
      print *, 'ray ', raynum, ', pos0=', pos0, ', dir0=', dir0
      if( modelnum == 1 ) then
         call raytracer_run( &
-             pos,time,vprel,vgrel,n,stopcond, &
+             pos,time,vprel,vgrel,n,B0,stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
              fixedstep, del, fngo, data, raytracer_stopconditions)
      elseif( modelnum == 2 ) then
         call raytracer_run( &
-             pos,time,vprel,vgrel,n,stopcond, &
+             pos,time,vprel,vgrel,n,B0,stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
              fixedstep, del, fgcpm, data, raytracer_stopconditions)
      elseif( modelnum == 3 ) then
         call raytracer_run( &
-             pos,time,vprel,vgrel,n,stopcond, &
+             pos,time,vprel,vgrel,n,B0,stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
              fixedstep, del, finterp, data, raytracer_stopconditions)
      end if
      ! Write the data to the output file
      do i=1,size(time,1)
-        write(outfile, '(i10, i10, 13es24.15e3)'), raynum, stopcond, &
-             time(i), pos(:,i), vprel(:,i), vgrel(:,i), n(:,i)
+        write(outfile, '(i10, i10, 16es24.15e3)'), raynum, stopcond, &
+             time(i), pos(:,i), vprel(:,i), vgrel(:,i), n(:,i), B0(:,i)
      end do
         
      deallocate(pos)
@@ -433,6 +434,7 @@ program raytracer_driver
      deallocate(vprel)
      deallocate(vgrel)
      deallocate(n)
+     deallocate(B0)
 
      raynum = raynum+1
   end do

@@ -56,7 +56,7 @@ contains
 
     open(unit=infile, file=filename, status="old")
     ! Read in the sizes
-    read(infile, '(5i10)'), dat%computederivatives, &
+    read(infile, *), dat%computederivatives, &
          dat%nspec, dat%nx,dat%ny,dat%nz
     read(infile, *), dat%minx,dat%maxx, &
          dat%miny,dat%maxy, dat%minz,dat%maxz

@@ -184,7 +184,7 @@ program dumpmodel
      ! configuration file
      call getopt_named( 'ngo_configfile', buffer, foundopt )
      if( foundopt == 1 ) then
-        read (buffer,*) ngo_configfile
+        read (buffer,'(a)') ngo_configfile
      end if
      ! yearday
      call getopt_named( 'yearday', buffer, foundopt )
@@ -338,10 +338,10 @@ program dumpmodel
      print *, '   milliseconds_day: ', gcpm_state_data%itime(2)
      print *, '   use_tsyganenko:   ', gcpm_state_data%use_tsyganenko
      print *, '   use_igrf:         ', gcpm_state_data%use_igrf
-     print *, '   tsyganenko_Pdyn:  ', ngo_state_data%Pdyn
-     print *, '   tsyganenko_Dst:   ', ngo_state_data%Dst
-     print *, '   tsyganenko_ByIMF: ', ngo_state_data%ByIMF
-     print *, '   tsyganenko_BzIMF: ', ngo_state_data%BzIMF
+     print *, '   tsyganenko_Pdyn:  ', gcpm_state_data%Pdyn
+     print *, '   tsyganenko_Dst:   ', gcpm_state_data%Dst
+     print *, '   tsyganenko_ByIMF: ', gcpm_state_data%ByIMF
+     print *, '   tsyganenko_BzIMF: ', gcpm_state_data%BzIMF
 
      ! Allocate space for the data
      ! number of species, times 4 (charge, number density, mass, 
@@ -369,7 +369,7 @@ program dumpmodel
      ! Read the arguments
      call getopt_named( 'interp_interpfile', buffer, foundopt )
      if( foundopt == 1 ) then
-        read (buffer,*) interp_interpfile
+        read (buffer,'(a)') interp_interpfile
      end if
      ! yearday
      call getopt_named( 'yearday', buffer, foundopt )
@@ -430,10 +430,10 @@ program dumpmodel
      print *, '   milliseconds_day: ', interp_state_data%itime(2)
      print *, '   use_tsyganenko:   ', interp_state_data%use_tsyganenko
      print *, '   use_igrf:         ', interp_state_data%use_igrf
-     print *, '   tsyganenko_Pdyn:  ', ngo_state_data%Pdyn
-     print *, '   tsyganenko_Dst:   ', ngo_state_data%Dst
-     print *, '   tsyganenko_ByIMF: ', ngo_state_data%ByIMF
-     print *, '   tsyganenko_BzIMF: ', ngo_state_data%BzIMF
+     print *, '   tsyganenko_Pdyn:  ', interp_state_data%Pdyn
+     print *, '   tsyganenko_Dst:   ', interp_state_data%Dst
+     print *, '   tsyganenko_ByIMF: ', interp_state_data%ByIMF
+     print *, '   tsyganenko_BzIMF: ', interp_state_data%BzIMF
 
      ! Additional model setup
      print *, 'Reading input file'

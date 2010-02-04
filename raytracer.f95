@@ -441,12 +441,12 @@ function rk4(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData)
   rk4 = x + 1.0_DP/6.0_DP*(k1+2.0_DP*k2+2.0_DP*k3+k4)
 end function rk4
 
-subroutine raytracer_run( pos,time,vprel,vgrel,n,stopcond, &
+subroutine raytracer_run( pos,time,vprel,vgrel,n,B0,stopcond, &
      pos0, dir0, w0, dt0, dtmax, maxerr, maxsteps, root, tmax, fixedstep, &
      del, funcPlasmaParams, funcPlasmaParamsData, funcStopConditions)
   
   real(kind=DP), allocatable, intent(out) :: & 
-       pos(:,:), time(:), vprel(:,:), vgrel(:,:), n(:,:)
+       pos(:,:), time(:), vprel(:,:), vgrel(:,:), n(:,:), B0(:,:) 
   real(kind=DP), allocatable :: tmpsize2(:,:), tmpsize1(:)
   integer, intent(out) :: stopcond
   real(kind=DP), intent(in) :: pos0(3), dir0(3), w0, dt0, dtmax, maxerr, tmax
@@ -472,6 +472,11 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,stopcond, &
   character :: funcPlasmaParamsData(:)
 
   real(kind=DP) :: dt, x(7), t, x0(7), dfdk(3), dfdw, est1(7), est2(7)
+  ! Temporary variables needed by call to get and output the plasma
+  ! parameters at our next calculated point.
+  real(kind=DP), allocatable :: qstmp(:), Nstmp(:), mstmp(:), nustmp(:)
+  real(kind=DP) :: B0tmp(3)
+
   integer :: lastrefinedown, nstep
   complex(kind=DP) :: k1mag, k2mag, k0mag, k(3), k0(3)
   real(kind=DP) :: dtincr, err, cur_pos(3), w
@@ -499,6 +504,10 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,stopcond, &
   dfdw = dispersion_relation_dFdw(x(4:6), w0, x(1:3), del, &
                                   funcPlasmaParams, funcPlasmaParamsData)
 
+  ! Find the plasma parameters at our starting point
+  call funcPlasmaParams(x(1:3), qstmp, Nstmp, mstmp, nustmp, B0tmp, &
+                        funcPlasmaParamsData)
+
   ! Initialize the output variables
   allocate(pos(3,1))
   pos(:,1) = x(1:3)
@@ -510,7 +519,10 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,stopcond, &
   vprel(:,1) = n(:,1)/dot_product(n(:,1),n(:,1))
   allocate(vgrel(3,1))
   vgrel(:,1) = -(dfdk/dfdw)/C
+  allocate(B0(3,1))
+  B0(:,1) = B0tmp
   stopcond = 0
+
 
   nstep = 1
   do
@@ -606,6 +618,9 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,stopcond, &
           funcPlasmaParams, funcPlasmaParamsData)
      dfdw = dispersion_relation_dFdw(x(4:6), w, x(1:3), del, &
           funcPlasmaParams, funcPlasmaParamsData)
+     ! Find plasma parameters at our new point
+     call funcPlasmaParams(x(1:3), qstmp, Nstmp, mstmp, nustmp, B0tmp, &
+                           funcPlasmaParamsData)
 
 
 !!$     print *, 'pos=',  x(1:3)
@@ -644,6 +659,12 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,stopcond, &
      tmpsize2(1:size(vgrel,1),1:size(vgrel,2)) = vgrel
      call move_alloc(tmpsize2, vgrel)
      vgrel(:,size(vgrel,2)) = -(dfdk/dfdw)/C
+     ! B0 = [B0, B0tmp]
+     allocate(tmpsize2(size(B0,1), size(B0,2)+1))
+     tmpsize2(1:size(B0,1),1:size(B0,2)) = B0
+     call move_alloc(tmpsize2, B0)
+     B0(:,size(B0,2)) = B0tmp
+     
 
 !!$  print '(es24.15e3, 3es24.15e3, 3es24.15e3, 3es24.15e3, 3es24.15e3)', t, & 
 !!$       pos(:,size(pos,2)), n(:,size(n,2)), vprel(:,size(vprel,2)), &
