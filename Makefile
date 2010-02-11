@@ -3,6 +3,8 @@
 ifeq "$(OS)" "Windows_NT"
 RM = del
 EXT = .exe
+# necessary to keep it from linking to a silly dll
+FLAGS = -static-libgcc
 else
 RM = rm -f
 EXT = 
@@ -19,7 +21,7 @@ sources = \
 	util.f95 \
 	raytracer.f95 \
 
-FLAGS = -O3 -Wall
+FLAGS += -O3 -Wall
 
 INCLUDES = -I../tricubic-for
 
