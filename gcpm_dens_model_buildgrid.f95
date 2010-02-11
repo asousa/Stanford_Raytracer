@@ -2,7 +2,7 @@
 ! model, which improves the speed if you intend to do multiple runs with 
 ! the same set of density model parameters.  
 program gcpm_dens_model_buildgrid
-  use constants, only : R_E, PI
+  use constants, only : R_E, PI, VERSION
   use gcpm_dens_model_adapter
   implicit none
 
@@ -36,6 +36,8 @@ program gcpm_dens_model_buildgrid
   integer :: computederivatives
 
   ind = 0
+
+  print '(a,f5.2)', 'GCPM grid builder version', VERSION
 
   if( iargc() /= 14 ) then
      print *, 'Usage:'

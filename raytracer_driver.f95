@@ -1,7 +1,7 @@
 program raytracer_driver
   use types
   use util
-  use constants, only : R_E, PI
+  use constants, only : R_E, PI, VERSION
   use ngo_dens_model_adapter, only : fngo=>funcPlasmaParams, ngoStateData, &
        ngoStateDataP, ngosetup=>setup
   use gcpm_dens_model_adapter, only : fgcpm=>funcPlasmaParams, &
@@ -9,14 +9,17 @@ program raytracer_driver
   use interp_dens_model_adapter, only : finterp=>funcPlasmaParams, &
        interpStateData, interpStateDataP, interpsetup=>setup
   use raytracer, only : raytracer_run, raytracer_stopconditions
+  USE ISO_FORTRAN_ENV ! for OUTPUT_UNIT definition, from 2003 standard
   implicit none
 
   real(kind=DP) :: pos0(3), w, dir0(3), dt0, dtmax, maxerr, tmax
   integer :: fixedstep, root
 
   real(kind=DP), allocatable :: pos(:,:), time(:), vprel(:,:), vgrel(:,:), &
-                                n(:,:), B0(:,:)
-  integer :: stopcond, i, maxsteps
+                                n(:,:), B0(:,:), &
+                                qs(:,:), ms(:,:), Ns(:,:), nus(:,:)
+
+  integer :: stopcond, i, maxsteps, j
 
   real(kind=DP) :: del
   
@@ -37,6 +40,8 @@ program raytracer_driver
   type(interpStateDataP) :: interp_state_datap
 
   modelnum = 0
+
+  print '(a,f5.2)', 'Raytracer version', VERSION
 
   if( iargc() == 0 ) then
      print *, 'Usage:'
@@ -89,6 +94,7 @@ program raytracer_driver
      print *, '   --tsyganenko_Dst     between -100 and +20 in nT'
      print *, '   --tsyganenko_ByIMF   between -10 and +10 nT'
      print *, '   --tsyganenko_BzIMF   between -10 and +10 nT'
+     flush(OUTPUT_UNIT)
 
      stop
   end if
@@ -150,6 +156,7 @@ program raytracer_driver
   print *, 'inputraysfile: ', inputraysfile(1:len_trim(inputraysfile))
   print *, '   outputfile: ', outputfile(1:len_trim(outputfile))
   print *, '     modelnum: ', modelnum
+  flush(OUTPUT_UNIT)
 
   ! Such a large value is necessary because many of the
   ! plasmasphere/magnetosphere models use only real precision 7
@@ -237,6 +244,7 @@ program raytracer_driver
      print *, '   tsyganenko_Dst:   ', ngo_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', ngo_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', ngo_state_data%BzIMF
+     flush(OUTPUT_UNIT)
 
   elseif( modelnum == 2 ) then
      !!!!!!!!!!!!!!!!!!!!!!! GCPM SETUP
@@ -311,6 +319,7 @@ program raytracer_driver
      print *, '   tsyganenko_Dst:   ', gcpm_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', gcpm_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', gcpm_state_data%BzIMF
+     flush(OUTPUT_UNIT)
 
   elseif( modelnum == 3 ) then
      !!!!!!!!!!!!!!!!!!!!!!! INTERPOLATED SETUP
@@ -387,11 +396,14 @@ program raytracer_driver
      print *, '   tsyganenko_Dst:   ', interp_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', interp_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', interp_state_data%BzIMF
+     flush(OUTPUT_UNIT)
 
      ! Additional model setup
      print *, 'Reading input file'
+     flush(OUTPUT_UNIT)
      call interpsetup(interp_state_data, interp_interpfile)
      print *, 'Done'
+     flush(OUTPUT_UNIT)
 
   end if
 
@@ -407,26 +419,47 @@ program raytracer_driver
         exit
      end if
      print *, 'ray ', raynum, ', pos0=', pos0, ', dir0=', dir0
+     flush(OUTPUT_UNIT)
      if( modelnum == 1 ) then
         call raytracer_run( &
-             pos,time,vprel,vgrel,n,B0,stopcond, &
+             pos,time,vprel,vgrel,n,&
+             B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
              fixedstep, del, fngo, data, raytracer_stopconditions)
      elseif( modelnum == 2 ) then
         call raytracer_run( &
-             pos,time,vprel,vgrel,n,B0,stopcond, &
+             pos,time,vprel,vgrel,n, &
+             B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
              fixedstep, del, fgcpm, data, raytracer_stopconditions)
      elseif( modelnum == 3 ) then
         call raytracer_run( &
-             pos,time,vprel,vgrel,n,B0,stopcond, &
+             pos,time,vprel,vgrel,n, &
+             B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
              fixedstep, del, finterp, data, raytracer_stopconditions)
      end if
      ! Write the data to the output file
      do i=1,size(time,1)
-        write(outfile, '(i10, i10, 16es24.15e3)'), raynum, stopcond, &
-             time(i), pos(:,i), vprel(:,i), vgrel(:,i), n(:,i), B0(:,i)
+        write(outfile, &
+             fmt='(i10, i10, 16es24.15e3, i10)', &
+             advance='no'), &
+             raynum, stopcond, &
+             time(i), pos(:,i), vprel(:,i), vgrel(:,i), n(:,i), &
+             B0(:,i), size(qs,1)
+        do j=1,size(qs,1)
+           write(outfile, fmt='(es24.15e3)',  advance='no'), qs(j,i)
+        end do
+        do j=1,size(qs,1)
+           write(outfile, fmt='(es24.15e3)',  advance='no'), ms(j,i)
+        end do
+        do j=1,size(qs,1)
+           write(outfile, fmt='(es24.15e3)',  advance='no'), Ns(j,i)
+        end do
+        do j=1,size(qs,1)
+           write(outfile, fmt='(es24.15e3)',  advance='no'), nus(j,i)
+        end do
+        write(outfile, fmt='(a)'), ''
      end do
         
      deallocate(pos)
@@ -435,9 +468,15 @@ program raytracer_driver
      deallocate(vgrel)
      deallocate(n)
      deallocate(B0)
+     deallocate(qs)
+     deallocate(ms)
+     deallocate(Ns)
+     deallocate(nus)
 
      raynum = raynum+1
   end do
+  flush(outfile)
+  flush(infile)
   
   close(unit=outfile)
   close(unit=infile)

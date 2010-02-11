@@ -2,13 +2,14 @@
 program dumpmodel
   use types
   use util
-  use constants, only : R_E, PI
+  use constants, only : R_E, PI, VERSION
   use ngo_dens_model_adapter, only : fngo=>funcPlasmaParams, ngoStateData, &
        ngoStateDataP, ngosetup=>setup
   use gcpm_dens_model_adapter, only : fgcpm=>funcPlasmaParams, &
        gcpmStateData, gcpmStateDataP
   use interp_dens_model_adapter, only : finterp=>funcPlasmaParams, &
        interpStateData, interpStateDataP, interpsetup=>setup
+  USE ISO_FORTRAN_ENV ! for OUTPUT_UNIT definition, from 2003 standard
   implicit none
   
   character(len=100) :: filename, interp_interpfile, ngo_configfile
@@ -34,6 +35,8 @@ program dumpmodel
   real(kind=DP) :: B0(3)
 
   modelnum = 0
+
+  print '(a,f5.2)', 'Dumpmodel version', VERSION
 
   if( iargc() == 0 ) then
      print *, 'Usage:'
@@ -173,6 +176,7 @@ program dumpmodel
   print *, '       ny: ', ny
   print *, '       nz: ', nz
   print *, ' filename: ', filename
+  flush(OUTPUT_UNIT)
      
   if( modelnum == 1 ) then
      !!!!!!!!!!!!!!!!!!!!!!! Ngo setup
@@ -252,6 +256,7 @@ program dumpmodel
      print *, '   tsyganenko_Dst:   ', ngo_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', ngo_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', ngo_state_data%BzIMF
+     flush(OUTPUT_UNIT)
 
      ! Allocate space for the data
      ! number of species, times 4 (charge, number density, mass, 
@@ -261,6 +266,7 @@ program dumpmodel
      ! Grab the data
      do k=1,nz
         print *, 'k=',k, '/', nz
+        flush(OUTPUT_UNIT)
         do j=1,ny
            do i=1,nx
               call fngo((/x(i),y(j),z(k)/), qs, Ns, ms, nus, B0, data)
@@ -342,6 +348,7 @@ program dumpmodel
      print *, '   tsyganenko_Dst:   ', gcpm_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', gcpm_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', gcpm_state_data%BzIMF
+     flush(OUTPUT_UNIT)
 
      ! Allocate space for the data
      ! number of species, times 4 (charge, number density, mass, 
@@ -353,6 +360,7 @@ program dumpmodel
         do j=1,ny
            do i=1,nx
               print *, 'i=',i, '/', nx, 'j=',j, '/', ny, 'k=',k, '/', nz
+              flush(OUTPUT_UNIT)
               call fgcpm((/x(i),y(j),z(k)/), qs, Ns, ms, nus, B0, data)
               f(:,i,j,k) = (/qs, Ns, Ms, nus, B0/)
            end do
@@ -437,8 +445,10 @@ program dumpmodel
 
      ! Additional model setup
      print *, 'Reading input file'
+     flush(OUTPUT_UNIT)
      call interpsetup(interp_state_data, interp_interpfile)
      print *, 'Done'
+     flush(OUTPUT_UNIT)
 
      ! Allocate space for the data
      ! number of species, times 4 (charge, number density, mass, 
@@ -448,6 +458,7 @@ program dumpmodel
      ! Grab the data
      do k=1,nz
         print *, 'k=',k, '/', nz
+        flush(OUTPUT_UNIT)
         do j=1,ny
            do i=1,nx
               call finterp((/x(i),y(j),z(k)/), qs, Ns, ms, nus, B0, data)
@@ -463,6 +474,7 @@ program dumpmodel
   write(outfile, '(6es24.15e3)'), minx,maxx, miny,maxy, minz,maxz
   ! Print out the data
   write(outfile, '(es24.15e3)'), f
+  flush(outfile)
   ! close
   close(unit=outfile)
   

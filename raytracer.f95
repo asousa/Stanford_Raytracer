@@ -441,12 +441,14 @@ function rk4(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData)
   rk4 = x + 1.0_DP/6.0_DP*(k1+2.0_DP*k2+2.0_DP*k3+k4)
 end function rk4
 
-subroutine raytracer_run( pos,time,vprel,vgrel,n,B0,stopcond, &
+subroutine raytracer_run( pos,time,vprel,vgrel,n,&
+     B0, qs, ms, Ns, nus, stopcond, &
      pos0, dir0, w0, dt0, dtmax, maxerr, maxsteps, root, tmax, fixedstep, &
      del, funcPlasmaParams, funcPlasmaParamsData, funcStopConditions)
   
   real(kind=DP), allocatable, intent(out) :: & 
-       pos(:,:), time(:), vprel(:,:), vgrel(:,:), n(:,:), B0(:,:) 
+       pos(:,:), time(:), vprel(:,:), vgrel(:,:), n(:,:), & 
+       B0(:,:), qs(:,:), ms(:,:), Ns(:,:), nus(:,:)
   real(kind=DP), allocatable :: tmpsize2(:,:), tmpsize1(:)
   integer, intent(out) :: stopcond
   real(kind=DP), intent(in) :: pos0(3), dir0(3), w0, dt0, dtmax, maxerr, tmax
@@ -521,6 +523,14 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,B0,stopcond, &
   vgrel(:,1) = -(dfdk/dfdw)/C
   allocate(B0(3,1))
   B0(:,1) = B0tmp
+  allocate(qs(size(qstmp),1))
+  qs(:,1) = qstmp
+  allocate(ms(size(mstmp),1))
+  ms(:,1) = mstmp
+  allocate(Ns(size(Nstmp),1))
+  Ns(:,1) = Nstmp
+  allocate(nus(size(nustmp),1))
+  nus(:,1) = nustmp
   stopcond = 0
 
 
@@ -664,8 +674,27 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,B0,stopcond, &
      tmpsize2(1:size(B0,1),1:size(B0,2)) = B0
      call move_alloc(tmpsize2, B0)
      B0(:,size(B0,2)) = B0tmp
+     ! qs = [qs, qstmp]
+     allocate(tmpsize2(size(qs,1), size(qs,2)+1))
+     tmpsize2(1:size(qs,1),1:size(qs,2)) = qs
+     call move_alloc(tmpsize2, qs)
+     qs(:,size(qs,2)) = qstmp
+     ! ms = [ms, mstmp]
+     allocate(tmpsize2(size(ms,1), size(ms,2)+1))
+     tmpsize2(1:size(ms,1),1:size(ms,2)) = ms
+     call move_alloc(tmpsize2, ms)
+     ms(:,size(ms,2)) = mstmp
+     ! Ns = [Ns, Nstmp]
+     allocate(tmpsize2(size(Ns,1), size(Ns,2)+1))
+     tmpsize2(1:size(Ns,1),1:size(Ns,2)) = Ns
+     call move_alloc(tmpsize2, Ns)
+     Ns(:,size(Ns,2)) = Nstmp
+     ! nus = [nus, nustmp]
+     allocate(tmpsize2(size(nus,1), size(nus,2)+1))
+     tmpsize2(1:size(nus,1),1:size(nus,2)) = nus
+     call move_alloc(tmpsize2, nus)
+     nus(:,size(nus,2)) = nustmp
      
-
 !!$  print '(es24.15e3, 3es24.15e3, 3es24.15e3, 3es24.15e3, 3es24.15e3)', t, & 
 !!$       pos(:,size(pos,2)), n(:,size(n,2)), vprel(:,size(vprel,2)), &
 !!$       vgrel(:,size(vgrel,2))
