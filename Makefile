@@ -5,6 +5,9 @@ RM = del
 EXT = .exe
 # necessary to keep it from linking to a silly dll
 FLAGS = -static-libgcc
+ifeq "$(G95)" "gfortran"
+FLAGS += -static-libgfortran
+endif
 else
 RM = rm -f
 EXT = 
