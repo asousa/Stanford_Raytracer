@@ -3,8 +3,35 @@ use types
 implicit none
 contains
 
+function normal() result(ret)
+  implicit none
+  real(kind=DP) :: u,v,r,c, ret, randnum
+  integer :: done
+
+  done = 0
+
+  do while( done == 0 )
+     call random_number(randnum)
+     u = 2.0_DP*randnum-1.0_DP;
+     call random_number(randnum)
+     v = 2.0_DP*randnum-1.0_DP;
+     r = u*u+v*v
+
+     ! if outside interval (0,1], start over
+     if(r <= 0.0_DP .or. r > 1.0_DP) then
+        done = 0
+     else
+        done = 1
+        c = sqrt(-2.0_DP*log(r)/r)
+        ret= u*c
+     end if
+  end do
+end function normal
+
+
 ! Gets a named command-line option as a string
 subroutine getopt_named( paramname, paramout, found )
+  implicit none
   character(len=*), intent(in) :: paramname
   character(len=*), intent(out) :: paramout
   integer,intent(out) :: found
@@ -45,6 +72,7 @@ subroutine init_random_seed()
   integer :: value(8)
   integer :: clock
   
+  i=1
   call random_seed(size = n)
   allocate(seed(n))
   
@@ -59,6 +87,7 @@ end subroutine init_random_seed
 
 ! Convert the input position (x,y,z) to (rho,theta,phi)
 function cartesian_to_spherical(x)
+  implicit none
   real(kind=DP) :: cartesian_to_spherical(3)
   real(kind=DP) :: x(3)
 
@@ -75,6 +104,7 @@ end function cartesian_to_spherical
 ! Convert the input vector (p(1)*rhohat,p(2)*thetahat,p(3)*phihat) to 
 ! (x(1)*xhat,x(2)*yhat,x(3)*zhat at the position (theta,phi)
 function spherical_to_cartesian_vec(p, theta, phi)
+  implicit none
   real(kind=DP) :: spherical_to_cartesian_vec(3)
   real(kind=DP) :: p(3), theta, phi
   real(kind=DP) :: A(3,3)
@@ -92,6 +122,7 @@ function spherical_to_cartesian_vec(p, theta, phi)
 end function spherical_to_cartesian_vec
 
 function cross(b,c)
+  implicit none
   real(kind=DP) :: cross(3), b(3), c(3)
 
   cross(1) = b(2)*c(3) - b(3)*c(2)
@@ -104,6 +135,7 @@ end function cross
 ! Typically in this case the input to this function would be B, the 
 ! actual direction of the magnetic field
 function rotation_matrix_z(w)
+  implicit none
   real(kind=DP) :: rotation_matrix_z(3,3)
   real(kind=DP) :: w(3), u(3), v(3)
   
@@ -116,6 +148,7 @@ function rotation_matrix_z(w)
 end function rotation_matrix_z
 
 function spherical_to_cartesian(p)
+  implicit none
   real(kind=DP) :: spherical_to_cartesian(3)
   real(kind=DP) :: p(3)
   

@@ -19,13 +19,13 @@ program raytracer_driver
                                 n(:,:), B0(:,:), &
                                 qs(:,:), ms(:,:), Ns(:,:), nus(:,:)
 
+  character (len=100) :: buffer, inputraysfile, outputfile
   integer :: stopcond, i, maxsteps, j
 
-  real(kind=DP) :: del
+  real(kind=DP) :: del, minalt
   
   character(len=100) :: interp_interpfile, ngo_configfile
-  integer,parameter :: outfile=50, infile=51
-  character (len=100) :: buffer, inputraysfile, outputfile
+  integer,parameter :: infile=51, outfile=50
   character, allocatable :: data(:)
   real(kind=DP) :: tmpinput
   integer :: modelnum, sz, status, raynum, foundopt
@@ -55,6 +55,7 @@ program raytracer_driver
      print *, '--fixedstep     fixed timesteps (1) or adaptive (0)'
      print *, '--maxerr        maximum error for adaptive timestepping'
      print *, '--maxsteps      maximum number of timesteps'
+     print *, '--minalt        minimum altitude'
      print *, '--inputraysfile ray input filename'
      print *, '--outputfile    output filename'
      print *, '--modelnum      (1) Ngo model'
@@ -136,6 +137,10 @@ program raytracer_driver
   if( foundopt == 1 ) then
      read (buffer,*) maxsteps
   end if
+  call getopt_named( 'minalt', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) minalt
+  end if
   call getopt_named( 'inputraysfile', inputraysfile, foundopt )
   call getopt_named( 'outputfile', outputfile, foundopt )
   call getopt_named( 'modelnum', buffer, foundopt )
@@ -153,6 +158,7 @@ program raytracer_driver
   print *, '    fixedstep: ', fixedstep
   print *, '       maxerr: ', maxerr
   print *, '     maxsteps: ', maxsteps
+  print *, '       minalt: ', minalt
   print *, 'inputraysfile: ', inputraysfile(1:len_trim(inputraysfile))
   print *, '   outputfile: ', outputfile(1:len_trim(outputfile))
   print *, '     modelnum: ', modelnum
@@ -424,19 +430,19 @@ program raytracer_driver
         call raytracer_run( &
              pos,time,vprel,vgrel,n,&
              B0, qs, ms, Ns, nus, stopcond, &
-             pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
+             pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
              fixedstep, del, fngo, data, raytracer_stopconditions)
      elseif( modelnum == 2 ) then
         call raytracer_run( &
              pos,time,vprel,vgrel,n, &
              B0, qs, ms, Ns, nus, stopcond, &
-             pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
+             pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
              fixedstep, del, fgcpm, data, raytracer_stopconditions)
      elseif( modelnum == 3 ) then
         call raytracer_run( &
              pos,time,vprel,vgrel,n, &
              B0, qs, ms, Ns, nus, stopcond, &
-             pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
+             pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
              fixedstep, del, finterp, data, raytracer_stopconditions)
      end if
      ! Write the data to the output file

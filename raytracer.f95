@@ -301,15 +301,16 @@ end function raytracer_evalrhs
 ! frequency w, relative (scaled by c) phase velocity vprel, relative (scaled
 ! by c) group velocity vgrel, and the current timestep dt.
 !
-function raytracer_stopconditions(pos, k, w, vprel, vgrel, dt, nstep, maxsteps)
-  real(kind=DP) :: pos(3), k(3), w, vprel(3), vgrel(3), dt
+function raytracer_stopconditions(pos, k, w, vprel, vgrel, dt, nstep, &
+                                  maxsteps, minalt)
+  real(kind=DP) :: pos(3), k(3), w, vprel(3), vgrel(3), dt, minalt
   integer :: raytracer_stopconditions, nstep, maxsteps
 
   raytracer_stopconditions = 0
-  if( sqrt(dot_product(pos,pos)) < R_E ) then
-    ! Hit the earth
+  if( sqrt(dot_product(pos,pos)) < minalt ) then
+    ! Minimum altitude reached
     raytracer_stopconditions = 1
-    print *, '  Stopping integration.  Hit the earth.'
+    print *, '  Stopping integration.  Specified minimum altitude reached.'
   elseif( sqrt(dot_product(k,k)) == 0.0_DP ) then
     ! Nonsensical k
     raytracer_stopconditions = 2
@@ -443,7 +444,8 @@ end function rk4
 
 subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      B0, qs, ms, Ns, nus, stopcond, &
-     pos0, dir0, w0, dt0, dtmax, maxerr, maxsteps, root, tmax, fixedstep, &
+     pos0, dir0, w0, dt0, dtmax, maxerr, maxsteps, minalt, &
+     root, tmax, fixedstep, &
      del, funcPlasmaParams, funcPlasmaParamsData, funcStopConditions)
   
   real(kind=DP), allocatable, intent(out) :: & 
@@ -453,7 +455,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   integer, intent(out) :: stopcond
   real(kind=DP), intent(in) :: pos0(3), dir0(3), w0, dt0, dtmax, maxerr, tmax
   integer, intent(in) :: root, fixedstep, maxsteps
-  real(kind=DP), intent(in) :: del
+  real(kind=DP), intent(in) :: del, minalt
   interface 
      subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
        use types
@@ -465,9 +467,9 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   end interface
   interface
      integer function funcStopConditions( pos, k, w, vprel, vgrel, dt, &
-          nstep, maxsteps)
+          nstep, maxsteps, minalt)
        use types
-       real(kind=DP) :: pos(3), k(3), w, vprel(3), vgrel(3), dt
+       real(kind=DP) :: pos(3), k(3), w, vprel(3), vgrel(3), dt, minalt
        integer :: nstep, maxsteps
      end function funcStopConditions
   end interface
@@ -501,9 +503,9 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   t = 0.0_DP
   lastrefinedown = 0
 
-  dfdk = dispersion_relation_dFdk(x(4:6), w0, x(1:3), del, &
+  dfdk = dispersion_relation_dFdk(x(4:6), w0, x(1:3), 1.0e-10_DP, &
                                   funcPlasmaParams, funcPlasmaParamsData)
-  dfdw = dispersion_relation_dFdw(x(4:6), w0, x(1:3), del, &
+  dfdw = dispersion_relation_dFdw(x(4:6), w0, x(1:3), 1.0e-10_DP, &
                                   funcPlasmaParams, funcPlasmaParamsData)
 
   ! Find the plasma parameters at our starting point
@@ -545,7 +547,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      stopcond = funcStopConditions( x(1:3), x(4:6), x(7), &
                                     vprel(:,size(vprel,2)), &
                                     vgrel(:,size(vgrel,2)), dt, &
-                                    nstep, maxsteps ) 
+                                    nstep, maxsteps, minalt ) 
      if( stopcond /= 0 ) then
         exit
      end if

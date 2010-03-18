@@ -55,7 +55,7 @@ program gcpm_dens_model_buildgrid
      print *, '  compder:  (1) compute the derivatives'
      print *, '            (0) do not compute derivatives'
      print *, '  filename: output filename'
-     print *, '  kp: kp index                          (GCPM parameter)'
+     print *, '  gcpm_kp: kp index                     (GCPM parameter)'
      print *, '  yearday: year and day, e.g., 1999098  (GCPM parameter)'
      print *, '  milliseconds_day: milliseconds of day (GCPM parameter)'
      stop
