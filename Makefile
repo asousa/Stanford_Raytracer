@@ -31,8 +31,8 @@ sources = \
 	blas.f95
 
 
-#FLAGS += -O3 -Wall
-FLAGS += -g -fbounds-check
+FLAGS += -O3 -Wall
+#FLAGS += -g -fbounds-check
 
 INCLUDES = -I../tricubic-for
 
@@ -65,7 +65,7 @@ gcpm_dens_model_adapter.f95 : util.o constants.o bmodel_dipole.o types.o
 
 gcpm_dens_model_buildgrid_random_helpermod.f95 : util.o constants.o bmodel_dipole.o types.o
 
-scattered_interp_dens_model_adapter.f95 : types.o kdtree_mod.o util.o constants.o bmodel_dipole.o
+scattered_interp_dens_model_adapter.f95 : types.o kdtree_mod.o util.o constants.o bmodel_dipole.o lsinterp_mod.o
 
 interp_dens_model_adapter.f95 : util.o constants.o bmodel_dipole.o types.o
 
@@ -75,7 +75,9 @@ ngo_dens_model_adapter.f95 : util.o constants.o ngo_dens_model.o bmodel_dipole.o
 
 raytracer.f95 : util.o constants.o types.o
 
-raytracer_driver.f95 : types.o util.o constants.o ngo_dens_model_adapter.o gcpm_dens_model_adapter.o interp_dens_model_adapter.o raytracer.o
+raytracer_driver.f95 : types.o util.o constants.o ngo_dens_model_adapter.o gcpm_dens_model_adapter.o interp_dens_model_adapter.o scattered_interp_dens_model_adapter.o raytracer.o
+
+dumpmodel.f95 : types.o util.o constants.o ngo_dens_model_adapter.o gcpm_dens_model_adapter.o interp_dens_model_adapter.o scattered_interp_dens_model_adapter.o
 
 constants.f95 : types.o
 

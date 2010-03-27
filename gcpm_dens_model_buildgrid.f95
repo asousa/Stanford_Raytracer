@@ -1,6 +1,6 @@
-! This program builds a grid for use with the interpolated GCPM density
-! model, which improves the speed if you intend to do multiple runs with 
-! the same set of density model parameters.  
+! This program builds a grid for use with the interpolated density
+! model, which improves the speed if you intend to do multiple runs
+! with the same set of density model parameters.
 program gcpm_dens_model_buildgrid
   use constants, only : R_E, PI, VERSION
   use gcpm_dens_model_adapter
@@ -24,7 +24,7 @@ program gcpm_dens_model_buildgrid
   real(kind=DP) :: minx,maxx, miny,maxy, minz,maxz
   real(kind=DP) :: d,dfact
   
-  integer :: ind, i,j,k
+  integer :: ind, i,j,k, foundopt
   real(kind=DP),allocatable :: tmp(:)
   real(kind=DP) :: tmpinput
 
@@ -33,7 +33,7 @@ program gcpm_dens_model_buildgrid
   type(gcpmStateData),target :: stateData
   type(gcpmStateDataP) :: stateDataP
   
-  integer :: computederivatives
+  integer :: compder
 
   ind = 0
 
@@ -41,63 +41,91 @@ program gcpm_dens_model_buildgrid
 
   if( iargc() /= 14 ) then
      print *, 'Usage:'
-     print *, '  program minx maxx miny maxy minz maxz nx ny nz compder filename kp yearday milliseconds_day'
+     print *, '  program --param1=value1 --param2=value2 ...'
      print *, '  '
-     print *, '  minx: minimum x coordinate'
-     print *, '  maxx: maximum x coordinate'
-     print *, '  miny: minimum y coordinate'
-     print *, '  maxy: maximum y coordinate'
-     print *, '  minz: minimum z coordinate'
-     print *, '  maxz: maximum z coordinate'
-     print *, '    nx: number of points in x direction'
-     print *, '    ny: number of points in y direction'
-     print *, '    nz: number of points in z direction'
-     print *, '  compder:  (1) compute the derivatives'
-     print *, '            (0) do not compute derivatives'
-     print *, '  filename: output filename'
-     print *, '  gcpm_kp: kp index                     (GCPM parameter)'
-     print *, '  yearday: year and day, e.g., 1999098  (GCPM parameter)'
-     print *, '  milliseconds_day: milliseconds of day (GCPM parameter)'
+     print *, '     --minx:       minimum x coordinate'
+     print *, '     --maxx:       maximum x coordinate'
+     print *, '     --miny:       minimum y coordinate'
+     print *, '     --maxy:       maximum y coordinate'
+     print *, '     --minz:       minimum z coordinate'
+     print *, '     --maxz:       maximum z coordinate'
+     print *, '       --nx:       number of points in x direction'
+     print *, '       --ny:       number of points in y direction'
+     print *, '       --nz:       number of points in z direction'
+     print *, '  --compder:       (1) compute the derivatives'
+     print *, '                   (0) do not compute derivatives'
+     print *, '  --filename:      output filename'
+     print *, '  --gcpm_kp:       kp index                    (GCPM parameter)'
+     print *, '  --yearday:       year and day, e.g., 1999098 (GCPM parameter)'
+     print *, '  --milliseconds_day: milliseconds of day      (GCPM parameter)'
      stop
   end if
 
   ! Read the arguments
-  call getarg(1,buffer)
-  read (buffer,*) minx
-  call getarg(2,buffer)
-  read (buffer,*) maxx
-  call getarg(3,buffer)
-  read (buffer,*) miny
-  call getarg(4,buffer)
-  read (buffer,*) maxy
-  call getarg(5,buffer)
-  read (buffer,*) minz
-  call getarg(6,buffer)
-  read (buffer,*) maxz
-
-  call getarg(7,buffer)
-  read (buffer,*) tmpinput
-  nx = floor(tmpinput)
-  call getarg(8,buffer)
-  read (buffer,*) tmpinput
-  ny = floor(tmpinput)
-  call getarg(9,buffer)
-  read (buffer,*) tmpinput
-  nz = floor(tmpinput)
-  call getarg(10,buffer)
-  read (buffer,*) tmpinput
-  computederivatives = floor(tmpinput)
-  call getarg(11,filename)
-  
-  call getarg(12, buffer)
-  read (buffer,*) tmpinput
-  stateData%akp = floor(tmpinput)
-  call getarg(13, buffer)
-  read (buffer,*) tmpinput
-  stateData%itime(1) = floor(tmpinput)
-  call getarg(14, buffer)
-  read (buffer,*) tmpinput
-  stateData%itime(2) = floor(tmpinput)
+  call getopt_named( 'minx', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read(buffer,*) minx
+  end if
+  call getopt_named( 'maxx', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read(buffer,*) maxx
+  end if
+  call getopt_named( 'miny', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read(buffer,*) miny
+  end if
+  call getopt_named( 'maxy', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read(buffer,*) maxy
+  end if
+  call getopt_named( 'minz', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read(buffer,*) minz
+  end if
+  call getopt_named( 'maxz', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read(buffer,*) maxz
+  end if
+  call getopt_named( 'nx', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     nx = floor(tmpinput)
+  end if
+  call getopt_named( 'ny', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     ny = floor(tmpinput)
+  end if
+  call getopt_named( 'nz', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     nz = floor(tmpinput)
+  end if
+  call getopt_named( 'compder', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     compder = floor(tmpinput)
+  end if
+  call getopt_named( 'filename', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,'(a)') filename
+  end if
+  call getopt_named( 'gcpm_kp', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     stateData%akp = floor(tmpinput)
+  end if
+  call getopt_named( 'yearday', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     stateData%itime(1) = floor(tmpinput)
+  end if
+  ! milliseconds_day
+  call getopt_named( 'milliseconds_day', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     stateData%itime(2) = floor(tmpinput)
+  end if
   
   ! Dummy parameters (unused by this script, so just use the magnetic 
   ! dipole field instead for speed).
@@ -121,7 +149,7 @@ program gcpm_dens_model_buildgrid
   allocate(z(nz))
 
   allocate(f(nspec, nx,ny,nz))
-  if( computederivatives == 1 ) then
+  if( compder == 1 ) then
      allocate(dfdx(nspec, nx,ny,nz))
      allocate(dfdy(nspec, nx,ny,nz))
      allocate(dfdz(nspec, nx,ny,nz))
@@ -189,7 +217,7 @@ program gcpm_dens_model_buildgrid
            ! If we've been asked to explicitly compute the derivatives, 
            ! then do so.  If not, they will be estimated later using
            ! finite differences
-           if( computederivatives == 1 ) then
+           if( compder == 1 ) then
               ! df/dx
               call funcPlasmaParams(pos+dx, &
                    qs, Ns, ms, nus, B0, data)
@@ -273,10 +301,23 @@ program gcpm_dens_model_buildgrid
   end do
 
   open(unit=outfile, file=filename, status="replace")
-  write(outfile, '(5i10)'), computederivatives, nspec, nx,ny,nz
+  !!! Write the header lines
+  write(outfile, '(5i10)'), compder, nspec, nx,ny,nz
   write(outfile, '(6es24.15e3)'), minx,maxx, miny,maxy, minz,maxz
+  ! Write the species charges
+  do i=1,nspec-1
+     write(outfile, fmt='(es24.15e3)',  advance='no'), qs(i)
+  end do
+  write(outfile, fmt='(es24.15e3)',  advance='yes'), qs(nspec)
+  ! Write the species masses
+  do i=1,nspec-1
+     write(outfile, fmt='(es24.15e3)',  advance='no'), ms(i)
+  end do
+  write(outfile, fmt='(es24.15e3)',  advance='yes'), ms(nspec)
+
+  !!! Write out the data
   write(outfile, '(es24.15e3)'), f
-  if( computederivatives == 1 ) then
+  if( compder == 1 ) then
      write(outfile, '(es24.15e3)'), dfdx
      write(outfile, '(es24.15e3)'), dfdy
      write(outfile, '(es24.15e3)'), dfdz

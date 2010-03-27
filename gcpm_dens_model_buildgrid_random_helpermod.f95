@@ -1,3 +1,11 @@
+! Helper module for gcpm_dens_model_buildgrid.  This just implements a
+! simple subroutine wrapper f that only returns Ns, around the plasma
+! parameters function, which returns Ns, qs, ms, etc...
+! 
+! I've also stuck the file output in this module as well, so any
+! sampled point gets automatically dumped to the output file.  All of
+! the module-level variables below have to be set to something, and
+! the file has to be opened for writing.
 module gcpm_dens_model_buildgrid_random_helpermod
   use types
   use util
@@ -14,10 +22,6 @@ module gcpm_dens_model_buildgrid_random_helpermod
   integer,parameter :: outfile=50
   integer :: nsamples
 
-!!$  open(unit=outfile, file=filename, status="replace")
-!!$  write(outfile, '(5i10)'), computederivatives, nspec, nx,ny,nz
-
-
 contains
 
   subroutine f(x, Ns) 
@@ -26,7 +30,6 @@ contains
     real(kind=DP),intent(in) :: x(:)
     real(kind=DP),intent(inout), allocatable :: Ns(:)
     integer :: i
-!    real(kind=DP) :: xreal(3)
     if( mod( nsamples, 100 ) == 0 ) then
        write(*, '(a)', advance='no'), '.'
     end if

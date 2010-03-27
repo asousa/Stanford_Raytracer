@@ -5,6 +5,25 @@ module randomsampling_mod
   implicit none
 
 contains
+  ! Recursive sampler, refines the given kd tree based on a recursive 
+  ! importance sampling technique.
+  ! 
+
+  ! Implementation of the plasma parameters function.
+  ! In/out:
+  !   tree - starting kd tree, should be populated with at least some points
+  ! in:
+  !   f - the function 
+  !   fsize - the size of the vector returned by f
+  !   limit_min - the lower limit of the rectangle over which we're refining
+  !   limit_max - the upper limit of the rectangle over which we're refining
+  !   alpha - the effective tolerance, set to smaller to refine more
+  !   depth - used internally, set to zero when calling
+  !   maxdepth - maximum recursion depth
+  !   numincrease - number of points to add on each refinement (5 is
+  !                 reasonable, usually).  Set to more to ensure everything
+  !                 is caught.  Set to less to generate a more efficient
+  !                 set of samples (only where needed).
   recursive subroutine recursivesampler( tree, f, fsize, &
                                          limit_min, limit_max,  &
                                          alpha, depth, maxdepth, &
@@ -17,8 +36,6 @@ contains
     integer, intent(in) :: depth
     integer, intent(in) :: maxdepth
     integer, intent(in) :: numincrease
-!    real(kind=DP), intent(inout), allocatable :: points(:,:)
-!    real(kind=DP), intent(inout), allocatable :: vals(:,:)
     real(kind=DP), allocatable :: points(:,:)
     real(kind=DP), allocatable :: vals(:,:)
     integer, intent(in) :: fsize
@@ -100,14 +117,6 @@ contains
             sum((vals(:,i)-meanvals(i))*(vals(:,i)-meanvals(i)))
     end do
     var1 = vol*vol*var/size(vals,1)
-!!$    ! normalize by the sample mean squared
-!!$    var1 = var1/sum((sum(vals*vals,dim=1)/size(vals,1)))
-!!$    print *, vol
-!!$    print *, var
-!!$    print *, 'sz=', size(vals,1)
-!!$    print *, 'var1 lower=', var1
-!!$    print *, 'vals=', vals
-!!$pause
 
     if( sqrt(abs(var1)) > alpha ) then
        ! Double the points and evaluate it again
@@ -166,12 +175,6 @@ contains
             sum((vals(:,i)-meanvals(i))*(vals(:,i)-meanvals(i)))
     end do
     var1 = vol*vol*var/size(vals,1)
-!!$    print *, vol
-!!$    print *, var
-!!$    print *, 'sz=', size(vals,1)
-!!$    print *, 'var1 lower=', var1
-!!$    print *, 'vals=', vals
-!!$pause
 
     if( sqrt(abs(var1)) > alpha ) then
        ! Double the points and evaluate it again

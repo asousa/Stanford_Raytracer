@@ -1,6 +1,6 @@
-! This program builds a grid for use with the interpolated GCPM density
-! model, which improves the speed if you intend to do multiple runs with 
-! the same set of density model parameters.  
+! This program builds a grid for use with the scattered interpolated
+! density model, which improves the speed if you intend to do multiple
+! runs with the same set of density model parameters.
 program gcpm_dens_model_buildgrid_random
   use constants, only : R_E, PI, VERSION
   use util
@@ -26,6 +26,7 @@ program gcpm_dens_model_buildgrid_random
 
   real(kind=DP), allocatable :: Ns(:)
   real(kind=DP) :: xdir,ydir,zdir,dirnorm
+  real(kind=DP) :: x,y,z
   real(kind=DP) :: rmin,rmax, r, tmpinput
 
   real(kind=DP) :: minx,maxx, miny,maxy, minz,maxz
@@ -33,7 +34,8 @@ program gcpm_dens_model_buildgrid_random
   integer :: ind, i
   integer :: sz
   type(kdtree), pointer :: tree
-  integer :: foundopt, n_zero_altitude, n_iri_pad, n_initial, max_recursion
+  integer :: foundopt, n_zero_altitude, n_iri_pad, max_recursion
+  integer :: n_initial_radial, n_initial_uniform
   integer :: adaptive_nmax
   integer :: reason
 
@@ -56,29 +58,32 @@ program gcpm_dens_model_buildgrid_random
      print *, '--maxy   minimum y coordinate (m)'
      print *, '--minz   minimum z coordinate (m)'
      print *, '--maxz   minimum z coordinate (m)'
-     print *, '--n_zero_altitude  number of initial points at zero altitude.'
-     print *, '                   This number is for the WHOLE earth'
-     print *, '--n_iri_pad        number of initial points to sample at IRI'
-     print *, '                   altitudes.  The gradients here are strong'
-     print *, '                   so lots of sampling is required to keep'
-     print *, '                   the errors low.'
-     print *, '                   This number is for the WHOLE earth'
-     print *, '--n_initial        number of points to sample everywhere else'
-     print *, '                   This number is for the space from min to max'
-     print *, '--initial_tol      adaptive oversampling starting tolerance.'
-     print *, '--max_recursion    adaptive oversampling recursion depth'
-     print *, '--adaptive_nmax    Maximum number of adaptive samples that '
-     print *, '                   are allowed.  The tolerance will be '
-     print *, '                   successively halved until this number of'
-     print *, '                   samples is exceeded.'
-     print *, '--filename         output filename'
-     print *, '--inputfile        (optional) existing output file to read in'
-     print *, '                   any points in this file will be '
-     print *, '                   made part of the initial grid and will '
-     print *, '                   also get pushed to the output. '
-     print *, '--gcpm_kp          kp index (GCPM parameter)'
-     print *, '--yearday:         year and day, e.g., 1999098 (GCPM parameter)'
-     print *, '--milliseconds_day: milliseconds of day (GCPM parameter)'
+     print *, '--n_zero_altitude   number of initial points at zero altitude.'
+     print *, '                    This number is for the WHOLE earth'
+     print *, '--n_iri_pad         number of initial points to sample at IRI'
+     print *, '                    altitudes.  The gradients here are strong'
+     print *, '                    so lots of sampling is required to keep'
+     print *, '                    the errors low.'
+     print *, '                    This number is for the WHOLE earth'
+     print *, '--n_initial_radial  number of points to sample everywhere else'
+     print *, '                    on radially-weighted random points'
+     print *, '--n_initial_uniform number of points to sample everywhere else'
+     print *, '                    with uniform weighting' 
+     print *, '                    on radially-weighted random points'
+     print *, '--initial_tol       adaptive oversampling starting tolerance.'
+     print *, '--max_recursion     adaptive oversampling recursion depth'
+     print *, '--adaptive_nmax     Maximum number of adaptive samples that '
+     print *, '                    are allowed.  The tolerance will be '
+     print *, '                    successively halved until this number of'
+     print *, '                    samples is exceeded.'
+     print *, '--filename          output filename'
+     print *, '--inputfile         (optional) existing output file to read in'
+     print *, '                    any points in this file will be '
+     print *, '                    made part of the initial grid and will '
+     print *, '                    also get pushed to the output. '
+     print *, '--gcpm_kp           kp index (GCPM parameter)'
+     print *, '--yearday           year and day, e.g., 1999098 (GCPM parameter)'
+     print *, '--milliseconds_day  milliseconds of day (GCPM parameter)'
      stop
   end if
 
@@ -116,10 +121,15 @@ program gcpm_dens_model_buildgrid_random
      read (buffer,*) tmpinput
      n_iri_pad = floor(tmpinput)
   end if
-  call getopt_named( 'n_initial', buffer, foundopt )
+  call getopt_named( 'n_initial_radial', buffer, foundopt )
   if( foundopt == 1 ) then
      read (buffer,*) tmpinput
-     n_initial = floor(tmpinput)
+     n_initial_radial = floor(tmpinput)
+  end if
+  call getopt_named( 'n_initial_uniform', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     n_initial_uniform = floor(tmpinput)
   end if
   call getopt_named( 'initial_tol', buffer, foundopt )
   if( foundopt == 1 ) then
@@ -185,6 +195,9 @@ program gcpm_dens_model_buildgrid_random
   allocate(data(sz))
   data = transfer(stateDataP, data)
 
+  ! This will populate qs, ms, nus so we can output them
+  call funcPlasmaParams((/0.0_DP,0.0_DP,0.0_DP/), qs, Ns, ms, nus, B0, data)
+
   open(unit=outfile, file=filename, status="replace")
   !!! Write the header lines
   ! number of species
@@ -246,8 +259,8 @@ program gcpm_dens_model_buildgrid_random
         
         pos = r*(/ xdir,ydir,zdir /)
         if( pos(1) > minx .and. pos(1) < maxx .and. &
-             pos(2) > miny .and. pos(2) < maxy .and. &
-             pos(3) > minz .and. pos(3) < maxz ) then
+            pos(2) > miny .and. pos(2) < maxy .and. &
+            pos(3) > minz .and. pos(3) < maxz ) then
            call f(pos, Ns)
            call kdtree_add( tree, pos, Ns, 0 )
         end if
@@ -276,8 +289,8 @@ program gcpm_dens_model_buildgrid_random
         
         pos = r*(/ xdir,ydir,zdir /)
         if( pos(1) > minx .and. pos(1) < maxx .and. &
-             pos(2) > miny .and. pos(2) < maxy .and. &
-             pos(3) > minz .and. pos(3) < maxz ) then
+            pos(2) > miny .and. pos(2) < maxy .and. &
+            pos(3) > minz .and. pos(3) < maxz ) then
            call f(pos, Ns)
            call kdtree_add( tree, pos, Ns, 0 )
         end if
@@ -285,8 +298,8 @@ program gcpm_dens_model_buildgrid_random
      print *, 'Done'
   end if
 
-  if( n_initial > 0 ) then
-     print *, 'Sampling everywhere else, ', n_initial, 'samples'
+  if( n_initial_radial > 0 ) then
+     print *, 'Sampling everywhere else, ', n_initial_radial, 'radial samples'
      rmin = R_E
      rmax = maxval( (/ &
           minx*minx + miny*miny + minz*minz, &
@@ -299,7 +312,7 @@ program gcpm_dens_model_buildgrid_random
           maxx*maxx + maxy*maxy + maxz*maxz /) )
      rmax = sqrt(rmax)
      i=0
-     do while ( i < n_initial )
+     do while ( i < n_initial_radial )
         xdir = normal();
         ydir = normal();
         zdir = normal();
@@ -322,6 +335,27 @@ program gcpm_dens_model_buildgrid_random
      end do
      print *, 'Done'
   end if
+
+  if( n_initial_uniform > 0 ) then
+     print *, 'Sampling everywhere else, ', n_initial_uniform, &
+          'uniform samples'
+     i=0
+     do while ( i < n_initial_uniform )
+        call random_number(x)
+        x = minx + x*(maxx-minx)
+        call random_number(y)
+        y = miny + y*(maxy-miny)
+        call random_number(z)
+        z = minz + z*(maxz-minz)
+
+        pos = (/ x,y,z /)
+        call f(pos, Ns)
+        call kdtree_add( tree, pos, Ns, 0 )
+        i=i+1
+     end do
+     print *, 'Done'
+  end if
+
 
 
   if( adaptive_nmax > 0 ) then

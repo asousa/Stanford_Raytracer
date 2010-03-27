@@ -7,6 +7,8 @@ module scattered_interp_dens_model_adapter
   use util
   use constants, only : R_E, PI
   use bmodel_dipole
+  use lsinterp_mod
+  USE ISO_FORTRAN_ENV ! for OUTPUT_UNIT definition, from 2003 standard
   implicit none
 
   ! Types for marshalling.  This is required since the user of this adapter
@@ -19,7 +21,22 @@ module scattered_interp_dens_model_adapter
      integer :: computederivatives
      integer :: itime(2)
      
+     ! The kd-tree, used for storing all points
      type(kdtree), pointer :: tree     
+     ! Width scale factor (as a factor of maximum separation) for the
+     ! interpolator window.
+     real(kind=DP) :: window_scale
+     ! interpolator order
+     integer :: order
+     ! weighting window type (exact or approximate)
+     integer :: exact
+     ! whether to use the scaling factor originally specified in  the paper
+     integer :: scaled
+     ! The amount to scale the radius of the weighting window above
+     ! the local average minimum nearest distance
+     real(kind=DP) :: local_window_scale
+     ! Maximum nearest separation
+     real(kind=DP) :: maxnearest
 
      ! Tsyganenko parameters
      real(kind=DP) :: Pdyn, Dst, ByIMF, BzIMF
@@ -47,9 +64,13 @@ contains
     type(scatteredinterpStateData),intent(inout) :: dat
     integer,parameter :: infile=60
     integer :: done, i, reason
-    real(kind=DP) :: pos(3)
+    real(kind=DP) :: pos(3), dist
+    real(kind=DP), allocatable :: best(:)
+    real(kind=DP), allocatable :: tmp(:)
+    real(kind=DP), allocatable :: bestval(:)
     real(kind=DP), allocatable :: points(:,:), vals(:,:)
     real(kind=DP), allocatable :: pointstmp(:,:), valstmp(:,:)
+    real(kind=DP), pointer :: valptr(:)
     ! Really would be nice to have the IEEE support for infinity in 
     ! this compiler.  Oh well.  :(
     real(kind=DP),parameter :: inf=1.79e+308_DP
@@ -69,14 +90,10 @@ contains
     allocate(dat%Ns(dat%nspec))
     allocate(dat%ms(dat%nspec))
     allocate(dat%nus(dat%nspec))
-    
+
     ! The masses and charges are recorded in the file's header
-    do i=1,dat%nspec
-       read(infile, *), dat%qs(i)
-    end do
-    do i=1,dat%nspec
-       read(infile, *), dat%ms(i)
-    end do
+    read(infile, *), ( dat%qs(i), i=1,dat%nspec )
+    read(infile, *), ( dat%ms(i), i=1,dat%nspec )
 
     ! Add the points in the file to the KD-tree
     done = 0
@@ -85,58 +102,97 @@ contains
        if( reason /= 0 ) then
           done = 1
        else
-!          ! only add if they're outside the earth
-          !          if( dot_product(pos,pos) > (R_E)**2 ) then
-             call kdtree_add( dat%tree, pos, dat%Ns, 0 )
-!          end if
+          if( allocated( best ) ) then
+             deallocate(best)
+          end if
+          if( allocated( bestval ) ) then
+             deallocate(bestval)
+          end if
+          ! Make sure it doesn't exist first
+          call kdtree_nearest( dat%tree, pos, 0, best, bestval )
+          ! Then add the point
+          if( .not. allocated( best ) ) then
+             ! Leave an extra zero space in the "val" field to store 
+             ! the point density, which we'll compute later
+             call kdtree_add( dat%tree, pos, (/ dat%Ns, 1.0_DP /), 0 )
+          elseif( dot_product(best-pos, best-pos) > 0.0_DP ) then
+             ! Leave an extra zero space in the "val" field to store 
+             ! the point density, which we'll compute later
+             call kdtree_add( dat%tree, pos, (/ dat%Ns, 1.0_DP /), 0 )
+          else
+             print *, 'Ignoring duplicate point in input file.'
+             flush(OUTPUT_UNIT)
+          end if
        end if
     end do
 
-!!$    ! Get all the points everywhere
-!!$    call kdtree_search_rect( tree, (/0.0_DP, 0.0_DP, 0.0_DP/) &
-!!$         (/-inf,-inf,-inf/), (/inf,inf,inf/), &
-!!$         points, vals )
-!!$
-!!$    ! Search within a region around each point
-!!$    do i=1,size(points,1)
-!!$       if( allocated( pointstmp ) ) then
-!!$          deallocate(pointstmp)
-!!$       end if
-!!$       if( allocated( valstmp ) ) then
-!!$          deallocate(valstmp)
-!!$       end if
-!!$       call kdtree_search( tree, points(i,:), 0.4e7_DP, &
-!!$                           pointstmp, valstmp )
-!!$       ! Record the counts in the tree
-!!$       
-!!$       
-!!$
-!!$
-!!$    end do
-
-
-
+    ! Get all the points everywhere
+    print *, 'Searching for all points'
+    flush(OUTPUT_UNIT)
+    call kdtree_search_rect( dat%tree, (/0.0_DP, 0.0_DP, 0.0_DP/), &
+         (/inf,inf,inf/), (/inf,inf,inf/), &
+         points, vals )
+    
+    ! Search each point for its nearest neighbor and record that distance.
+    print *, 'Finding nearest distances'
+    flush(OUTPUT_UNIT)
+    dat%maxnearest = 0.0_DP
+    do i=1,size(points,1)
+       if( dot_product(points(i,:),points(i,:)) >= R_E**2 ) then
+          ! Find the nearest neighbor
+          if( allocated( best ) ) then
+             deallocate(best)
+          end if
+          if( allocated( bestval ) ) then
+             deallocate(bestval)
+          end if
+          call kdtree_nearest( dat%tree, points(i,:), 1, best, bestval )
+          
+          ! Find our target point in the tree
+          nullify( valptr )
+          if( allocated( tmp ) ) then
+             deallocate(tmp)
+          end if
+          call kdtree_find_ptr( dat%tree, points(i,:), tmp, valptr )
+          ! Record the distance in the tree, tacked onto the end 
+          ! of the values field.
+          if( associated( valptr ) ) then
+             dist = sqrt(dot_product(points(i,:)-best,points(i,:)-best))
+             valptr(size(valptr)) = dist
+             if( dist > dat%maxnearest ) then
+                dat%maxnearest = dist
+             end if
+          else
+             print *, 'Could not find a point we just loaded.'
+             print *, 'This error is too serious to tolerate.  Quitting.'
+             stop
+          end if
+       end if
+    end do
+    print *, 'Max nearest distance = ', dat%maxnearest
+       
+    if( allocated( tmp ) ) then
+       deallocate(tmp)
+    end if
+    if( allocated( best ) ) then
+       deallocate(best)
+    end if
+    if( allocated( bestval ) ) then
+       deallocate(bestval)
+    end if
     if( allocated( points ) ) then
        deallocate(points)
     end if
     if( allocated( vals ) ) then
        deallocate(vals)
     end if
+    if( allocated( pointstmp ) ) then
+       deallocate(pointstmp)
+    end if
+    if( allocated( valstmp ) ) then
+       deallocate(valstmp)
+    end if
 
-    ! 
-
-    ! find the maximum separation between points
-!!$    maximum_separation = 0
-!!$
-!!$    do ii=1,size(x,1)
-!!$   if( norm(x(ii,1:3)) > R_E*1000 ) 
-!!$     [best, val]=kdtree_nearest(tree, x(ii,1:3), 1, MEX);
-!!$     if( norm(best-x(ii,1:3)) > maximum_separation )
-!!$       maximum_separation = norm(best-x(ii,1:3));
-!!$       foundpoint = x(ii,1:3);
-!!$     end;
-!!$   end;
-!!$ end;
     close(infile)
     
   end subroutine setup
@@ -165,7 +221,7 @@ contains
 
     real(kind=DP) :: parmod(10)
 
-    integer :: iopt
+    integer :: iopt, status
     real(kind=SP) :: B0xTsy, B0yTsy, B0zTsy
     real(kind=SP) :: B0xBASE, B0yBASE, B0zBASE
 
@@ -191,11 +247,30 @@ contains
     ! the Tsyganenko model
     call SM_TO_GSM_d(datap%p%itime,x,x_gsm)
 
-    ! Do the interpolation for each species.  The interpolation data
-    ! is stored in SM coordinates
+    ! Do the interpolation.  The interpolation data is stored in SM
+    ! coordinates.
 
-    ! interpolated in log scale
-    Ns = exp(Ns)
+    if( dot_product(x,x) > R_E**2 ) then
+       call lsinterp( x, datap%p%tree, &
+            (datap%p%maxnearest * datap%p%window_scale), &
+            datap%p%order, datap%p%exact, datap%p%scaled, &
+            datap%p%local_window_scale, &
+            Ns, status )
+       if( status == 1 ) then
+          print *, &
+              'Interpolator failed.  Went out of bounds or ',  &
+              'local_window_scale/window_scale too small.'
+       elseif( status == 2 ) then
+          print *, &
+           'Interpolator failed.  Went out of bounds or window_scale ',  &
+           'too small.'
+       end if
+       ! interpolated in log scale
+       Ns = exp(Ns)
+    else
+       Ns = 0.0_DP
+    end if
+
     qs = datap%p%qs
     ms = datap%p%ms
     nus = 0.0_DP

@@ -3,6 +3,7 @@ use types
 implicit none
 contains
 
+! Generate a normally distributed random variable
 function normal() result(ret)
   implicit none
   real(kind=DP) :: u,v,r,c, ret, randnum

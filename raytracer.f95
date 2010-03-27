@@ -208,7 +208,7 @@ function dispersion_relation_dFdx(k, w, x, del, funcPlasmaParams, &
   real(kind=DP) :: n(3)
   real(kind=DP) :: Fp, Fn
 
-  call funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
+  !call funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
 
   d=del*sqrt(dot_product(x,x))
   if( d == 0.0_DP ) then

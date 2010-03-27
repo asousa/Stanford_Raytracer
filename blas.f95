@@ -1,9 +1,12 @@
+! Helper module for some commonly-used BLAS functions
 module blas
   use types
   implicit none
 
 contains
 
+! Solve the system A x = b.  Return x.  info, if nonzero, will contain 
+! an error message.
 subroutine SolveBlas(A,b,x,info) 
   implicit none
   real(kind=DP),intent(in) :: A(:,:)
@@ -32,7 +35,35 @@ subroutine SolveBlas(A,b,x,info)
  
 end subroutine SolveBlas
 
+! Solve the system A x = b for symmetric A.  Return x.  info, if
+! nonzero, will contain an error message.
+subroutine SolveBlasSymmetric(A,b,x,info) 
+  implicit none
+  real(kind=DP),intent(in) :: A(:,:)
+  real(kind=DP),intent(in) :: b(:)
+  real(kind=DP),intent(inout) :: x(size(A,1))
+  real(kind=DP) :: ipiv(size(A,1))
+  integer, intent(out) :: info
 
+  real(kind=DP),allocatable :: tmpA(:,:)
+  allocate(tmpA(size(A,1), size(A,2)))
+  tmpA = A
+
+  ! Solve A*x=b
+  ! X = A\B
+  ! SUBROUTINE DPOSV( UPLO, N, NRHS, A, LDA, B, LDB, INFO )
+  call dposv('U', size(A,1), 1, tmpA, size(A,1), b, &
+       size(x,1), info)
+  x = b
+
+  if( allocated(tmpA) ) then
+     deallocate(tmpA) 
+  end if
+ 
+end subroutine SolveBlasSymmetric
+
+
+! Find the inverse of the matrix A
 function InvBlas(A) result(invA)
   implicit none
   real(kind=DP),intent(in) :: A(:,:)
@@ -79,6 +110,7 @@ function MatTransMatMultBlas(A,B) result(C)
 
 end function MatTransMatMultBlas
 
+! Multiply A*B and return C
 function MatMatMultBlas(A,B) result(C)
   implicit none
   real(kind=DP),intent(in) :: A(:,:), B(:,:)
@@ -106,6 +138,7 @@ function MatVecMultBlas(A,x) result(y)
 end function MatVecMultBlas
 
 
+! Compute the SVD of the matrix A
 subroutine svd(A, U,S,VT )
   implicit none
   real(kind=DP),intent(in) :: A(:,:)

@@ -52,14 +52,24 @@ contains
     character (len=*),intent(in) :: filename
     type(interpStateData),intent(inout) :: dat
     integer,parameter :: infile=60
-    integer :: ind
+    integer :: ind, i
 
     open(unit=infile, file=filename, status="old")
+    !!! Read in the header
     ! Read in the sizes
     read(infile, *), dat%computederivatives, &
          dat%nspec, dat%nx,dat%ny,dat%nz
     read(infile, *), dat%minx,dat%maxx, &
          dat%miny,dat%maxy, dat%minz,dat%maxz
+    
+    ! The masses and charges are recorded in the file's header
+    allocate(dat%qs(dat%nspec))
+    allocate(dat%Ns(dat%nspec))
+    allocate(dat%ms(dat%nspec))
+    allocate(dat%nus(dat%nspec))
+    read(infile, *), ( dat%qs(i), i=1,dat%nspec )
+    read(infile, *), ( dat%ms(i), i=1,dat%nspec )
+
     ! Allocate space in the arrays
     allocate(dat%f(dat%nspec, dat%nx,dat%ny,dat%nz))
     allocate(dat%dfdx(dat%nspec, dat%nx,dat%ny,dat%nz))
@@ -70,10 +80,6 @@ contains
     allocate(dat%d2fdydz(dat%nspec, dat%nx,dat%ny,dat%nz))
     allocate(dat%d3fdxdydz(dat%nspec, dat%nx,dat%ny,dat%nz))
 
-    allocate(dat%qs(dat%nspec))
-    allocate(dat%Ns(dat%nspec))
-    allocate(dat%ms(dat%nspec))
-    allocate(dat%nus(dat%nspec))
     
     allocate(dat%x(dat%nx))
     allocate(dat%y(dat%ny))
@@ -137,7 +143,6 @@ contains
     character :: funcPlasmaParamsData(:)
     real(kind=DP) :: ce,ch,che,co
     real(kind=DP) :: x(3),x_gsm(3)
-    real(kind=DP) :: outn(4)
     integer :: ind
     
     integer :: year, day, hour, min, sec
@@ -150,22 +155,22 @@ contains
 
     type(interpStateDataP) :: datap
 
-    if (.not.(allocated(qs))) then
-       allocate(qs(4))
-    end if
-    if (.not.(allocated(Ns))) then
-       allocate(Ns(4))
-    end if
-    if (.not.(allocated(ms))) then
-       allocate(ms(4))
-    end if
-    if (.not.(allocated(nus))) then
-       allocate(nus(4))
-    end if
-    
     ! Unmarshall the callback data
     datap = transfer(funcPlasmaParamsData, datap)
 
+    if (.not.(allocated(qs))) then
+       allocate(qs(datap%p%nspec))
+    end if
+    if (.not.(allocated(Ns))) then
+       allocate(Ns(datap%p%nspec))
+    end if
+    if (.not.(allocated(ms))) then
+       allocate(ms(datap%p%nspec))
+    end if
+    if (.not.(allocated(nus))) then
+       allocate(nus(datap%p%nspec))
+    end if
+    
     ! Convert from SM x,y,z to GSM x,y,z needed by 
     ! the Tsyganenko model
     call SM_TO_GSM_d(datap%p%itime,x,x_gsm)
@@ -173,7 +178,7 @@ contains
     ! Do the interpolation for each species.  The interpolation data
     ! is stored in SM coordinates
     do ind=1,datap%p%nspec 
-       outn(ind) = tricubic_interpolate_at( &
+       Ns(ind) = tricubic_interpolate_at( &
             x(1),x(2),x(3), &
             datap%p%f(ind,:,:,:), &
             datap%p%x, datap%p%y, datap%p%z, &
@@ -188,16 +193,11 @@ contains
     end do
 
     ! interpolated in log scale
-    ce = exp(outn(1))
-    ch = exp(outn(2))
-    che = exp(outn(3))
-    co = exp(outn(4))
-    qs = 1.602e-19_DP*(/ -1.0_DP, 1.0_DP, 1.0_DP, 1.0_DP /)
-    ms = (/ 9.10938188e-31_DP, 1.6726e-27_DP, &
-         4.0_DP*1.6726e-27_DP, 16.0_DP*1.6726e-27_DP /)
-    ! Ns is already in m^-3
-    Ns = (/ ce, ch, che, co /)
-    nus = (/ 0.0_DP, 0.0_DP, 0.0_DP, 0.0_DP /)
+    Ns = exp(Ns)
+    qs = datap%p%qs
+    ms = datap%p%ms
+    ! For now, just set the collision frequencies to zero
+    nus = 0.0_DP
 
     ! Tsyganenko magnetic field
     
