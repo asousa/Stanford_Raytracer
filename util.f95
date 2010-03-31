@@ -3,6 +3,28 @@ use types
 implicit none
 contains
 
+! Randomly permute the given vector
+subroutine randperm( indices )
+  implicit none
+  integer,intent(inout) :: indices(:)
+  integer :: i, ind
+  real(kind=DP) :: randnum, tmpnum
+
+  do i=1,size(indices)
+     call random_number(randnum)
+     ind = floor(real(size(indices),kind=DP)*randnum)+1
+     ! Just for paranoia reasons
+     if( ind > size(indices) ) then
+        ind = size(indices)
+     end if
+     
+     ! Swap
+     tmpnum = indices(i)
+     indices(i) = indices(ind)
+     indices(ind) = tmpnum
+  end do
+end subroutine randperm
+
 ! Generate a normally distributed random variable
 function normal() result(ret)
   implicit none

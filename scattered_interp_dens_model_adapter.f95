@@ -63,19 +63,21 @@ contains
     character (len=*),intent(in) :: filename
     type(scatteredinterpStateData),intent(inout) :: dat
     integer,parameter :: infile=60
-    integer :: done, i, reason
+    integer :: done, i, j, reason
     real(kind=DP) :: pos(3), dist
     real(kind=DP), allocatable :: best(:)
     real(kind=DP), allocatable :: tmp(:)
     real(kind=DP), allocatable :: bestval(:)
     real(kind=DP), allocatable :: points(:,:), vals(:,:)
     real(kind=DP), allocatable :: pointstmp(:,:), valstmp(:,:)
+    real(kind=DP), allocatable :: tmpsize2(:,:)
     real(kind=DP), pointer :: valptr(:)
     ! Really would be nice to have the IEEE support for infinity in 
     ! this compiler.  Oh well.  :(
     real(kind=DP),parameter :: inf=1.79e+308_DP
-
-!    real(kind=DP) :: foundpoint(3)
+    integer :: allocsize, sz
+    integer, allocatable :: indices(:)
+    i=1
 
     nullify(dat%tree)
 
@@ -95,49 +97,77 @@ contains
     read(infile, *), ( dat%qs(i), i=1,dat%nspec )
     read(infile, *), ( dat%ms(i), i=1,dat%nspec )
 
-    ! Add the points in the file to the KD-tree
+    ! Read in all of the points
+    allocsize=65536
+    sz = 0
     done = 0
+    print *, 'Reading file'
+    flush(OUTPUT_UNIT)
+    allocate(points(0,3))
+    allocate(vals(0,dat%nspec))
     do while( done == 0 )
        read(infile, *, iostat=reason), pos, dat%Ns
        if( reason /= 0 ) then
           done = 1
        else
-          if( allocated( best ) ) then
-             deallocate(best)
+          ! reallocate if necessary
+          if( mod(sz, allocsize) == 0 ) then
+             allocate(tmpsize2(size(points,1)+allocsize, size(points,2)))
+             tmpsize2(1:size(points,1),1:size(points,2)) = points
+             deallocate(points)
+             call move_alloc(tmpsize2, points)
+             
+             allocate(tmpsize2(size(vals,1)+allocsize, size(vals,2)))
+             tmpsize2(1:size(vals,1),1:size(vals,2)) = vals
+             deallocate(vals)
+             call move_alloc(tmpsize2, vals)
           end if
-          if( allocated( bestval ) ) then
-             deallocate(bestval)
-          end if
-          ! Make sure it doesn't exist first
-          call kdtree_nearest( dat%tree, pos, 0, best, bestval )
-          ! Then add the point
-          if( .not. allocated( best ) ) then
-             ! Leave an extra zero space in the "val" field to store 
-             ! the point density, which we'll compute later
-             call kdtree_add( dat%tree, pos, (/ dat%Ns, 1.0_DP /), 0 )
-          elseif( dot_product(best-pos, best-pos) > 0.0_DP ) then
-             ! Leave an extra zero space in the "val" field to store 
-             ! the point density, which we'll compute later
-             call kdtree_add( dat%tree, pos, (/ dat%Ns, 1.0_DP /), 0 )
-          else
-             print *, 'Ignoring duplicate point in input file.'
-             flush(OUTPUT_UNIT)
-          end if
+
+          ! Update the output variables
+          points(sz+1,:) = pos
+          vals(sz+1,:) = dat%Ns
+          ! Update our size counter
+          sz = sz+1
        end if
     end do
 
-    ! Get all the points everywhere
-    print *, 'Searching for all points'
+    print *, 'Building kd-tree'
     flush(OUTPUT_UNIT)
-    call kdtree_search_rect( dat%tree, (/0.0_DP, 0.0_DP, 0.0_DP/), &
-         (/inf,inf,inf/), (/inf,inf,inf/), &
-         points, vals )
-    
+    allocate(indices(sz))
+    indices = (/ (i, i=1,sz) /)
+    ! randomly permute the indices
+    call randperm(indices)
+    ! Add the points in the file to the KD-tree
+    do j=1,sz
+       i=indices(j)
+       if( allocated( best ) ) then
+          deallocate(best)
+       end if
+       if( allocated( bestval ) ) then
+          deallocate(bestval)
+       end if
+       ! Make sure it doesn't exist first
+       call kdtree_nearest( dat%tree, points(i,:), 0, best, bestval )
+       ! Then add the point
+       if( .not. allocated( best ) ) then
+          ! Leave an extra space in the "val" field to store 
+          ! the point density, which we'll compute later
+          call kdtree_add( dat%tree, points(i,:), (/ vals(i,:), 1.0_DP /), 0 )
+       elseif( dot_product(best-points(i,:), best-points(i,:)) > 0.0_DP ) then
+          ! Leave an extra space in the "val" field to store 
+          ! the point density, which we'll compute later
+          call kdtree_add( dat%tree, points(i,:), (/ vals(i,:), 1.0_DP /), 0 )
+       else
+          print *, 'Ignoring duplicate point in input file.'
+          flush(OUTPUT_UNIT)
+       end if
+    end do
+
     ! Search each point for its nearest neighbor and record that distance.
     print *, 'Finding nearest distances'
     flush(OUTPUT_UNIT)
     dat%maxnearest = 0.0_DP
-    do i=1,size(points,1)
+    do i=1,sz
        if( dot_product(points(i,:),points(i,:)) >= R_E**2 ) then
           ! Find the nearest neighbor
           if( allocated( best ) ) then
@@ -191,6 +221,12 @@ contains
     end if
     if( allocated( valstmp ) ) then
        deallocate(valstmp)
+    end if
+    if( allocated( tmpsize2 ) ) then
+       deallocate(tmpsize2)
+    end if
+    if( allocated( indices ) ) then
+       deallocate(indices)
     end if
 
     close(infile)

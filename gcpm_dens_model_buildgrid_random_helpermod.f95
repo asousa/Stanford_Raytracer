@@ -30,7 +30,7 @@ contains
     real(kind=DP),intent(in) :: x(:)
     real(kind=DP),intent(inout), allocatable :: Ns(:)
     integer :: i
-    if( mod( nsamples, 100 ) == 0 ) then
+    if( mod( nsamples, 1000 ) == 0 ) then
        write(*, '(a)', advance='no'), '.'
     end if
     

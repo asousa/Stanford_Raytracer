@@ -42,7 +42,6 @@ subroutine SolveBlasSymmetric(A,b,x,info)
   real(kind=DP),intent(in) :: A(:,:)
   real(kind=DP),intent(in) :: b(:)
   real(kind=DP),intent(inout) :: x(size(A,1))
-  real(kind=DP) :: ipiv(size(A,1))
   integer, intent(out) :: info
 
   real(kind=DP),allocatable :: tmpA(:,:)

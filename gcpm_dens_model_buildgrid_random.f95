@@ -46,7 +46,8 @@ program gcpm_dens_model_buildgrid_random
   inputfile = ''
   print '(a,f5.2)', 'GCPM grid builder version', VERSION
 
-!./gcpm_dens_model_buildgrid_random  --minx=-6.371e7 --maxx=6.371e7 --miny=-6.371e7 --maxy=6.371e7 --minz=-6.371e7 --maxz=6.371e7 --n_zero_altitude=10000 --n_iri_pad=40000 --n_initial=100000 --initial_tol=1.0 --max_recursion=20 --adaptive_nmax=100000 --filename=gcpm_kp4_2001001_L10_random.txt --gcpm_kp=4.0 --yearday=2001001 --milliseconds_day=0 
+! ./gcpm_dens_model_buildgrid_random --minx=-6.371e7 --maxx=6.371e7 --miny=-6.371e7 --maxy=6.371e7 --minz=-6.371e7 --maxz=6.371e7 --n_zero_altitude=5000 --n_iri_pad=20000 --n_initial_radial=0 --n_initial_uniform=200000 --initial_tol=1.0 --max_recursion=80 --adaptive_nmax=600000 --filename=gcpm_kp4_2001001_L10_random_5000_20000_0_200000_600000.txt --gcpm_kp=4.0 --yearday=2001001 --milliseconds_day=0
+
 
   if( iargc() == 0 ) then
      print *, 'Usage:'
@@ -69,7 +70,6 @@ program gcpm_dens_model_buildgrid_random
      print *, '                    on radially-weighted random points'
      print *, '--n_initial_uniform number of points to sample everywhere else'
      print *, '                    with uniform weighting' 
-     print *, '                    on radially-weighted random points'
      print *, '--initial_tol       adaptive oversampling starting tolerance.'
      print *, '--max_recursion     adaptive oversampling recursion depth'
      print *, '--adaptive_nmax     Maximum number of adaptive samples that '
@@ -198,6 +198,12 @@ program gcpm_dens_model_buildgrid_random
   ! This will populate qs, ms, nus so we can output them
   call funcPlasmaParams((/0.0_DP,0.0_DP,0.0_DP/), qs, Ns, ms, nus, B0, data)
 
+  print *, 'Model parameters:'
+  print *, '   yearday:          ', stateData%itime(1)
+  print *, '   milliseconds_day: ', stateData%itime(2)
+  print *, '   gcpm_kp:          ', stateData%akp
+
+
   open(unit=outfile, file=filename, status="replace")
   !!! Write the header lines
   ! number of species
@@ -237,64 +243,6 @@ program gcpm_dens_model_buildgrid_random
         end if
      end do
      flush(outfile)
-     print *, 'Done'
-  end if
-
-  if( n_zero_altitude > 0 ) then
-     print *, 'Sampling at earth surface, ', n_zero_altitude, 'samples'
-     ! First draw a line at the earth, so the interpolator has a good minimum.
-     rmin = R_E
-     rmax = R_E
-     do i=1,n_zero_altitude
-        xdir = normal();
-        ydir = normal();
-        zdir = normal();
-        dirnorm = sqrt(xdir*xdir + ydir*ydir + zdir*zdir)
-        xdir = xdir/dirnorm
-        ydir = ydir/dirnorm
-        zdir = zdir/dirnorm
-        
-        call random_number(r)
-        r = rmin+(rmax-rmin)*r
-        
-        pos = r*(/ xdir,ydir,zdir /)
-        if( pos(1) > minx .and. pos(1) < maxx .and. &
-            pos(2) > miny .and. pos(2) < maxy .and. &
-            pos(3) > minz .and. pos(3) < maxz ) then
-           call f(pos, Ns)
-           call kdtree_add( tree, pos, Ns, 0 )
-        end if
-     end do
-     print *, 'Done'
-  end if
-
-  if( n_iri_pad > 0 ) then
-     print *, 'Sampling ionosphere, ', n_iri_pad, 'samples'
-     ! Sample the ionosphere really well, up to 2000 km altitude.  That's the 
-     ! maximum height of the IRI.  Beyond that, the other model kicks in.
-     rmin = R_E
-     rmax = R_E+2000000.0_DP
-     do i=1,n_iri_pad
-
-        xdir = normal();
-        ydir = normal();
-        zdir = normal();
-        dirnorm = sqrt(xdir*xdir + ydir*ydir + zdir*zdir)
-        xdir = xdir/dirnorm
-        ydir = ydir/dirnorm
-        zdir = zdir/dirnorm
-        
-        call random_number(r)
-        r = rmin+(rmax-rmin)*r
-        
-        pos = r*(/ xdir,ydir,zdir /)
-        if( pos(1) > minx .and. pos(1) < maxx .and. &
-            pos(2) > miny .and. pos(2) < maxy .and. &
-            pos(3) > minz .and. pos(3) < maxz ) then
-           call f(pos, Ns)
-           call kdtree_add( tree, pos, Ns, 0 )
-        end if
-     end do
      print *, 'Done'
   end if
 
@@ -378,6 +326,71 @@ program gcpm_dens_model_buildgrid_random
      end do
      print *, 'Done refining, final adaptive points=', nsamples
   end if
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! do the ionospheric oversampling absolute last, otherwise we can
+  ! muck up the adaptive sampling, since this is a highly structured
+  ! sampling and thus isn't really consistent with the way the
+  ! adaptive oversampling works.
+  if( n_zero_altitude > 0 ) then
+     print *, 'Sampling at earth surface, ', n_zero_altitude, 'samples'
+     ! First draw a line at the earth, so the interpolator has a good minimum.
+     rmin = R_E
+     rmax = R_E
+     do i=1,n_zero_altitude
+        xdir = normal();
+        ydir = normal();
+        zdir = normal();
+        dirnorm = sqrt(xdir*xdir + ydir*ydir + zdir*zdir)
+        xdir = xdir/dirnorm
+        ydir = ydir/dirnorm
+        zdir = zdir/dirnorm
+        
+        call random_number(r)
+        r = rmin+(rmax-rmin)*r
+        
+        pos = r*(/ xdir,ydir,zdir /)
+        if( pos(1) > minx .and. pos(1) < maxx .and. &
+            pos(2) > miny .and. pos(2) < maxy .and. &
+            pos(3) > minz .and. pos(3) < maxz ) then
+           call f(pos, Ns)
+           call kdtree_add( tree, pos, Ns, 0 )
+        end if
+     end do
+     print *, 'Done'
+  end if
+
+  if( n_iri_pad > 0 ) then
+     print *, 'Sampling ionosphere, ', n_iri_pad, 'samples'
+     ! Sample the ionosphere really well, up to 2000 km altitude.  That's the 
+     ! maximum height of the IRI.  Beyond that, the other model kicks in.
+     rmin = R_E
+     rmax = R_E+2000000.0_DP
+     do i=1,n_iri_pad
+
+        xdir = normal();
+        ydir = normal();
+        zdir = normal();
+        dirnorm = sqrt(xdir*xdir + ydir*ydir + zdir*zdir)
+        xdir = xdir/dirnorm
+        ydir = ydir/dirnorm
+        zdir = zdir/dirnorm
+        
+        call random_number(r)
+        r = rmin+(rmax-rmin)*r
+        
+        pos = r*(/ xdir,ydir,zdir /)
+        if( pos(1) > minx .and. pos(1) < maxx .and. &
+            pos(2) > miny .and. pos(2) < maxy .and. &
+            pos(3) > minz .and. pos(3) < maxz ) then
+           call f(pos, Ns)
+           call kdtree_add( tree, pos, Ns, 0 )
+        end if
+     end do
+     print *, 'Done'
+  end if
+
+
 
 
   close(unit=outfile)

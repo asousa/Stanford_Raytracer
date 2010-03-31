@@ -39,7 +39,7 @@ program gcpm_dens_model_buildgrid
 
   print '(a,f5.2)', 'GCPM grid builder version', VERSION
 
-  if( iargc() /= 14 ) then
+  if( iargc() == 0 ) then
      print *, 'Usage:'
      print *, '  program --param1=value1 --param2=value2 ...'
      print *, '  '
@@ -112,8 +112,7 @@ program gcpm_dens_model_buildgrid
   end if
   call getopt_named( 'gcpm_kp', buffer, foundopt )
   if( foundopt == 1 ) then
-     read (buffer,*) tmpinput
-     stateData%akp = floor(tmpinput)
+     read (buffer,*) stateData%akp
   end if
   call getopt_named( 'yearday', buffer, foundopt )
   if( foundopt == 1 ) then
