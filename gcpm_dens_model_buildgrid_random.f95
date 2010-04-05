@@ -16,13 +16,13 @@ program gcpm_dens_model_buildgrid_random
        
   implicit none
 
-  character (len=100) :: buffer
-  character (len=100) :: filename
+  character (len=1000) :: buffer
+  character (len=1000) :: filename
   real(kind=DP) :: pos(3), junk
   integer :: done
   integer, parameter :: infile = 61
 
-  character (len=100) :: inputfile
+  character (len=1000) :: inputfile
 
   real(kind=DP), allocatable :: Ns(:)
   real(kind=DP) :: xdir,ydir,zdir,dirnorm
@@ -224,9 +224,16 @@ program gcpm_dens_model_buildgrid_random
   if( len_trim(inputfile) /= 0 ) then
      print *, 'Reading existing input file'
      open(unit=infile, file=inputfile, status="old")
-     ! skip the first line - header data.  Assume the species are the same
+     ! skip the first lines - header data.  Assume the species are the same
      ! (they'd better be!)
-     read( infile, *), junk,  junk, junk, junk, junk, junk, junk
+     ! Number of species
+     read( infile, *), junk
+     ! Bounds
+     read( infile, *), junk, junk, junk, junk, junk, junk
+     ! charges
+     read(infile, *), ( junk, i=1,nspec )
+     ! Masses
+     read(infile, *), ( junk, i=1,nspec )
 
      done = 0
      do while( done == 0 )

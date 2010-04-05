@@ -16,9 +16,9 @@ program dumpmodel
   USE ISO_FORTRAN_ENV ! for OUTPUT_UNIT definition, from 2003 standard
   implicit none
   
-  character(len=100) :: filename, interp_interpfile, ngo_configfile
+  character(len=1000) :: filename, interp_interpfile, ngo_configfile
   integer,parameter :: outfile=50
-  character (len=100) :: buffer
+  character (len=1000) :: buffer
   real(kind=DP), allocatable :: x(:), y(:), z(:) 
   integer :: nx,ny,nz, ind, nspec, i,j,k
   character, allocatable :: data(:)

@@ -7,8 +7,8 @@ program gcpm_dens_model_buildgrid
   implicit none
 
   integer,parameter :: outfile = 60
-  character (len=100) :: buffer
-  character (len=100) :: filename
+  character (len=1000) :: buffer
+  character (len=1000) :: filename
   real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
   real(kind=DP) :: B0(3)
   real(kind=DP) :: dx(3),dy(3),dz(3), delx,dely,delz, pos(3)

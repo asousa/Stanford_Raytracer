@@ -23,12 +23,12 @@ program raytracer_driver
                                 n(:,:), B0(:,:), &
                                 qs(:,:), ms(:,:), Ns(:,:), nus(:,:)
 
-  character (len=100) :: buffer, inputraysfile, outputfile
+  character (len=1000) :: buffer, inputraysfile, outputfile
   integer :: stopcond, i, maxsteps, j
 
   real(kind=DP) :: del, minalt
   
-  character(len=100) :: interp_interpfile, ngo_configfile
+  character(len=1000) :: interp_interpfile, ngo_configfile
   integer,parameter :: infile=51, outfile=50
   character, allocatable :: data(:)
   real(kind=DP) :: tmpinput
