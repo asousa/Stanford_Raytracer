@@ -155,8 +155,7 @@ program gcpm_dens_model_buildgrid_random
   end if
   call getopt_named( 'gcpm_kp', buffer, foundopt )
   if( foundopt == 1 ) then
-     read (buffer,*) tmpinput
-     stateData%akp = floor(tmpinput)
+     read (buffer,*) stateData%akp
   end if
   call getopt_named( 'yearday', buffer, foundopt )
   if( foundopt == 1 ) then
