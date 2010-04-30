@@ -39,6 +39,8 @@ program gcpm_dens_model_buildgrid_random
   integer :: adaptive_nmax
   integer :: reason
 
+  call init_random_seed()
+
   nullify(tree)
 
   ind = 0

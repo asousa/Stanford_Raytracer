@@ -7,21 +7,18 @@ contains
 subroutine randperm( indices )
   implicit none
   integer,intent(inout) :: indices(:)
-  integer :: i, ind
+  integer :: n, k
   real(kind=DP) :: randnum, tmpnum
 
-  do i=1,size(indices)
+  do n=size(indices),2,-1
      call random_number(randnum)
-     ind = floor(real(size(indices),kind=DP)*randnum)+1
-     ! Just for paranoia reasons
-     if( ind > size(indices) ) then
-        ind = size(indices)
-     end if
-     
-     ! Swap
-     tmpnum = indices(i)
-     indices(i) = indices(ind)
-     indices(ind) = tmpnum
+     ! Pick a number in the range of [1,n]
+     k = floor(real(n,kind=DP)*randnum)+1
+
+     ! Do the swap
+     tmpnum = indices(k)
+     indices(k) = indices(n)
+     indices(n) = tmpnum
   end do
 end subroutine randperm
 
