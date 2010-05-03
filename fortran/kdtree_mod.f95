@@ -48,9 +48,9 @@ contains
     end if
 
     if( tree%point(tree%dim) < p(tree%dim) ) then
-       call kdtree_add( tree%left, p, val, depth+1 )
-    else
        call kdtree_add( tree%right, p, val, depth+1 )
+    else
+       call kdtree_add( tree%left, p, val, depth+1 )
     end if
   end subroutine kdtree_add
 
@@ -116,10 +116,10 @@ contains
     end if
 
     if( tree%point(tree%dim) <  p(tree%dim) + radius ) then
-       call kdtree_search_count( tree%left,  p, radius, sz )
+       call kdtree_search_count( tree%right,  p, radius, sz )
     end if
     if( tree%point(tree%dim) >  p(tree%dim) - radius ) then
-       call kdtree_search_count(  tree%right, p, radius, sz )
+       call kdtree_search_count(  tree%left, p, radius, sz )
     end if
 
     ! Find the norm^2
@@ -157,11 +157,11 @@ contains
 
     if( tree%point(tree%dim) <  p(tree%dim) + radius ) then
        call kdtree_search_core( &
-            tree%left,  p, radius, points, vals, allocsize, sz )
+            tree%right,  p, radius, points, vals, allocsize, sz )
     end if
     if( tree%point(tree%dim) >  p(tree%dim) - radius ) then
        call kdtree_search_core( &
-            tree%right, p, radius, points, vals, allocsize, sz )
+            tree%left, p, radius, points, vals, allocsize, sz )
     end if
 
     ! Find the norm^2
@@ -266,11 +266,11 @@ contains
     
     if( tree%point(tree%dim) <  p(tree%dim) + upper(tree%dim) ) then
        call kdtree_search_rect_core( &
-            tree%left,  p, lower, upper, points, vals, allocsize, sz )
+            tree%right,  p, lower, upper, points, vals, allocsize, sz )
     end if
     if( tree%point(tree%dim) >  p(tree%dim) - lower(tree%dim) ) then
        call kdtree_search_rect_core( &
-            tree%right, p, lower, upper, points, vals, allocsize, sz )
+            tree%left, p, lower, upper, points, vals, allocsize, sz )
     end if
 
     reject=0
@@ -346,17 +346,6 @@ contains
     
     if( tree%point(tree%dim) < p(tree%dim) ) then
        ! Search the nearest branch
-       call kdtree_find_ptr(tree%left, p, best, valptr)
-       
-       ! Search the furthest branch if needed
-       dist_best = dot_product(best-p, best-p)
-       dist_axis = dot_product(tree%point-p, tree%point-p)
-       
-       if( dist_axis < dist_best ) then
-          call kdtree_find_ptr(tree%right, p, best, valptr)
-       end if
-    else
-       ! Search the nearest branch
        call kdtree_find_ptr(tree%right, p, best, valptr)
        
        ! Search the furthest branch if needed
@@ -365,6 +354,17 @@ contains
        
        if( dist_axis < dist_best ) then
           call kdtree_find_ptr(tree%left, p, best, valptr)
+       end if
+    else
+       ! Search the nearest branch
+       call kdtree_find_ptr(tree%left, p, best, valptr)
+       
+       ! Search the furthest branch if needed
+       dist_best = dot_product(best-p, best-p)
+       dist_axis = dot_product(tree%point-p, tree%point-p)
+       
+       if( dist_axis < dist_best ) then
+          call kdtree_find_ptr(tree%right, p, best, valptr)
        end if
     end if
 
@@ -419,17 +419,6 @@ contains
     
     if( tree%point(tree%dim) < p(tree%dim) ) then
        ! Search the nearest branch
-       call kdtree_nearest(tree%left, p, excludeself, best, val)
-       
-       ! Search the furthest branch if needed
-       dist_best = dot_product(best-p, best-p)
-       dist_axis = (tree%point(tree%dim)-p(tree%dim))**2
-       
-       if( dist_axis < dist_best ) then
-          call kdtree_nearest(tree%right, p, excludeself, best, val)
-       end if
-    else
-       ! Search the nearest branch
        call kdtree_nearest(tree%right, p, excludeself, best, val)
        
        ! Search the furthest branch if needed
@@ -438,6 +427,17 @@ contains
        
        if( dist_axis < dist_best ) then
           call kdtree_nearest(tree%left, p, excludeself, best, val)
+       end if
+    else
+       ! Search the nearest branch
+       call kdtree_nearest(tree%left, p, excludeself, best, val)
+       
+       ! Search the furthest branch if needed
+       dist_best = dot_product(best-p, best-p)
+       dist_axis = (tree%point(tree%dim)-p(tree%dim))**2
+       
+       if( dist_axis < dist_best ) then
+          call kdtree_nearest(tree%right, p, excludeself, best, val)
        end if
     end if
 
@@ -454,8 +454,8 @@ contains
        return
     end if
 
-    call kdtree_clear( tree%left )
     call kdtree_clear( tree%right )
+    call kdtree_clear( tree%left )
     
     deallocate(tree%point)
     deallocate(tree%val)
