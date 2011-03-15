@@ -16,13 +16,13 @@ program gcpm_dens_model_buildgrid_random
        
   implicit none
 
-  character (len=1000) :: buffer
-  character (len=1000) :: filename
+  character (len=10000) :: buffer
+  character (len=10000) :: filename
   real(kind=DP) :: pos(3), junk
   integer :: done
   integer, parameter :: infile = 61
 
-  character (len=1000) :: inputfile
+  character (len=10000) :: inputfile
 
   real(kind=DP), allocatable :: Ns(:)
   real(kind=DP) :: xdir,ydir,zdir,dirnorm

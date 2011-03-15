@@ -19,6 +19,7 @@ module gcpm_dens_model_adapter
      real(kind=SP) :: akp
      ! Tsyganenko parameters
      real(kind=DP) :: Pdyn, Dst, ByIMF, BzIMF
+     real(kind=DP) :: W1, W2, W3, W4, W5, W6
      ! Whether to use (1) or not use (0) the tsyganenko corrections
      integer :: use_tsyganenko
      ! Whether to use (1) IGRF or not use (0) and use dipole instead
@@ -170,6 +171,12 @@ contains
     parmod(2) = datap%p%Dst    !Dst:  between -100 and +20,
     parmod(3) = datap%p%ByIMF  !ByIMF: between -10 and +10 nT.
     parmod(4) = datap%p%BzIMF  !BzIMF: between -10 and +10 nT.
+    parmod(5) = datap%p%W1     !
+    parmod(6) = datap%p%W2     !
+    parmod(7) = datap%p%W3     !
+    parmod(8) = datap%p%W4     !
+    parmod(9) = datap%p%W5     !
+    parmod(10)= datap%p%W6     !
 
     ! Necessary call for the Tsyganenko geopack tools.  Also updates
     ! the common variable psi
@@ -189,7 +196,7 @@ contains
        B0zBASE = real(1.0e9_DP*B0tmp2(3))
     end if
     if( datap%p%use_tsyganenko == 1 ) then
-       call T96_01( iopt, real(parmod), real(psi), &
+       call T04_s( iopt, real(parmod), real(psi), &
             real(x_gsm(1)/R_E), real(x_gsm(2)/R_E), real(x_gsm(3)/R_E), &
             B0xTsy, B0yTsy, B0zTsy)
     else

@@ -4,6 +4,27 @@ use util
 use constants
 implicit none
 
+real(kind=DP),parameter :: rk45_c(6) = &
+     (/0.0_DP,1.0_DP/4.0_DP,3.0_DP/8.0_DP,12.0_DP/13.0_DP,1.0_DP,1.0_DP/2.0_DP/)
+
+real(kind=DP),parameter :: rk45_a2(1) = (/ 1.0_DP/4.0_DP /)
+real(kind=DP),parameter :: rk45_a3(2) = &
+     (/ 3.0_DP/32.0_DP, 9.0_DP/32.0_DP /)
+real(kind=DP),parameter :: rk45_a4(3) = &
+     (/ 1932.0_DP/2197.0_DP, -7200.0_DP/2197.0_DP, 7296.0_DP/2197.0_DP /)
+real(kind=DP),parameter :: rk45_a5(4) = &
+     (/ 439.0_DP/216.0_DP, -8.0_DP, 3680.0_DP/513.0_DP, -845.0_DP/4104.0_DP /)
+real(kind=DP),parameter :: rk45_a6(5) = &
+     (/ -8.0_DP/27.0_DP, 2.0_DP, -3544.0_DP/2565.0_DP, 1859.0_DP/4104.0_DP, &
+       -11.0_DP/40.0_DP /)
+
+real(kind=DP),parameter :: rk45_b4(6) = &
+     (/ 25.0_DP/216.0_DP, 0.0_DP, 1408.0_DP/2565.0_DP, 2197.0_DP/4104.0_DP, &
+     -1.0_DP/5.0_DP, 0.0_DP /)
+real(kind=DP),parameter :: rk45_b5(6) = &
+     (/ 16.0_DP/135.0_DP, 0.0_DP, 6656.0_DP/12825.0_DP, &
+       28561.0_DP/56430.0_DP, -9.0_DP/50.0_DP, 2.0_DP/55.0_DP /)
+
 contains
 
 ! Evaluate the dispersion relation function F(n,w) given the plasma
@@ -38,7 +59,7 @@ function dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   A = S*sin2phi + P*cos2phi
   B = R*L*sin2phi + P*S*(1.0_DP+cos2phi)
   
-  dispersion_relation = A*nmag2**2.0_DP - B*nmag2 + R*L*P
+  dispersion_relation = A*nmag2**2 - B*nmag2 + R*L*P
 end function dispersion_relation
 
 ! Compute the stix parameters for a multicomponent plasma
@@ -56,16 +77,16 @@ subroutine stix_parameters(w, qs, Ns, ms, nus, B0mag, &
 
   ! Complex raytracing not implemented.  Don't use collisions yet
   ! collisional version
-  !!$  wps2 = (Ns*qs**2.0_DP/ms/EPS0)*(w/(w+j*nus))
+  !!$  wps2 = (Ns*qs**2/ms/EPS0)*(w/(w+j*nus))
   !!$  wcs = ((qs*B0mag)/ms)*(w/(w+j*nus))
   ! noncollisional version
-  wps2 = (Ns*qs**2.0_DP/ms/EPS0)
+  wps2 = (Ns*qs**2/ms/EPS0)
   wcs = ((qs*B0mag)/ms)
 
   ! Evaluate the stix parameters given the multicomponent plasma relations
   R = 1.0_DP-sum(wps2/(w*(w+wcs)))
   L = 1.0_DP-sum(wps2/(w*(w-wcs)))
-  P = 1.0_DP-sum(wps2/w**2.0_DP)
+  P = 1.0_DP-sum(wps2/w**2)
   S = 1.0_DP/2.0_DP*(R+L)
   D = 1.0_DP/2.0_DP*(R-L)
 end subroutine stix_parameters
@@ -105,21 +126,18 @@ function dispersion_relation_dFdk(k, w, x, del, funcPlasmaParams, &
 
   call funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
 
-  d=del*sqrt(dot_product(k,k))
-  if( d == 0 ) then
-     d = del
-  end if
-  
+  d = max(del*abs(k(1)), del )
   dkx = d*(/ 1.0_DP,0.0_DP,0.0_DP /)
-  dky = d*(/ 0.0_DP,1.0_DP,0.0_DP /)
-  dkz = d*(/ 0.0_DP,0.0_DP,1.0_DP /)
-
   dispersion_relation_dFdk(1) = &
        ( dispersion_relation((k+dkx)*C/w, w, qs, Ns, ms, nus, B0 ) - &
          dispersion_relation((k-dkx)*C/w, w, qs, Ns, ms, nus, B0 ) )/d/2.0_DP
+  d = max(del*abs(k(2)), del )
+  dky = d*(/ 0.0_DP,1.0_DP,0.0_DP /)
   dispersion_relation_dFdk(2) = &
        ( dispersion_relation((k+dky)*C/w, w, qs, Ns, ms, nus, B0 ) - &
          dispersion_relation((k-dky)*C/w, w, qs, Ns, ms, nus, B0 ) )/d/2.0_DP
+  d = max(del*abs(k(3)), del )
+  dkz = d*(/ 0.0_DP,0.0_DP,1.0_DP /)
   dispersion_relation_dFdk(3) = &
        ( dispersion_relation((k+dkz)*C/w, w, qs, Ns, ms, nus, B0 ) - &
          dispersion_relation((k-dkz)*C/w, w, qs, Ns, ms, nus, B0 ) )/d/2.0_DP
@@ -161,10 +179,7 @@ function dispersion_relation_dFdw(k, w, x, del, funcPlasmaParams, &
 
   call funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
 
-  d=del*sqrt(w**2.0_DP)
-  if( d == 0.0_DP ) then
-     d = del
-  end if
+  d=max( del*abs(w), del )
   
   dispersion_relation_dFdw = &
        ( dispersion_relation(k*c/(w+d), (w+d), qs, Ns, ms, nus, B0 ) - &
@@ -208,32 +223,27 @@ function dispersion_relation_dFdx(k, w, x, del, funcPlasmaParams, &
   real(kind=DP) :: n(3)
   real(kind=DP) :: Fp, Fn
 
-  !call funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-
-  d=del*sqrt(dot_product(x,x))
-  if( d == 0.0_DP ) then
-     d = del
-  end if
-  
-  dx = d*(/ 1.0_DP,0.0_DP,0.0_DP /)
-  dy = d*(/ 0.0_DP,1.0_DP,0.0_DP /)
-  dz = d*(/ 0.0_DP,0.0_DP,1.0_DP /)
-
   n = k*C/w
   ! Central differencing
   ! x component
+  d = max(del*abs(x(1)), del)
+  dx = d*(/ 1.0_DP,0.0_DP,0.0_DP /)
   call funcPlasmaParams(x+dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
   Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   call funcPlasmaParams(x-dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
   Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   dispersion_relation_dFdx(1) = (Fp-Fn)/d/2.0_DP
   ! y component
+  d = max(del*abs(x(2)), del)
+  dy = d*(/ 0.0_DP,1.0_DP,0.0_DP /)
   call funcPlasmaParams(x+dy, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
   Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   call funcPlasmaParams(x-dy, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
   Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   dispersion_relation_dFdx(2) = (Fp-Fn)/d/2.0_DP
   ! z component
+  d = max(del*abs(x(3)), del)
+  dz = d*(/ 0.0_DP,0.0_DP,1.0_DP /)
   call funcPlasmaParams(x+dz, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
   Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   call funcPlasmaParams(x-dz, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
@@ -281,9 +291,9 @@ function raytracer_evalrhs(t, args, root, del, funcPlasmaParams, &
   
   ! Make del hardcoded for dfdk and dfdw.  dfdx is the one that's really
   ! strongly model-dependent, since some models use real precision.
-  dfdk = dispersion_relation_dFdk(k, w, x, 1.0e-10_DP, &
+  dfdk = dispersion_relation_dFdk(k, w, x, 1.0e-8_DP, &
                                   funcPlasmaParams, funcPlasmaParamsData)
-  dfdw = dispersion_relation_dFdw(k, w, x, 1.0e-10_DP, &
+  dfdw = dispersion_relation_dFdw(k, w, x, 1.0e-8_DP, &
                                   funcPlasmaParams, funcPlasmaParamsData)
   dfdx = dispersion_relation_dFdx(k, w, x, del, &
                                   funcPlasmaParams, funcPlasmaParamsData)
@@ -315,15 +325,11 @@ function raytracer_stopconditions(pos, k, w, vprel, vgrel, dt, nstep, &
     ! Nonsensical k
     raytracer_stopconditions = 2
     print *, '  Stopping integration.  k=0.'
-  elseif( sqrt(dot_product(vgrel,vgrel)) > 1.0_DP+1e-3_DP ) then
+  elseif( sqrt(dot_product(vgrel,vgrel)) > 1.0_DP+1e-2_DP ) then
     ! Faster than light group velocity, with fudge for roundoff error
     raytracer_stopconditions = 3
     print *, '  Stopping integration.  Nonsensical group velocity = ', &
          sqrt(dot_product(vgrel,vgrel))
-!!$  elseif( sqrt(dot_product(vprel,vprel)) > 1 ) then
-!!$    ! Faster than light phase velocity
-!!$    raytracer_stopconditions = 4
-!!$    print *, 'Stopping integration.  Nonsensical phase velocity.'
   elseif( dt < 1e-12 ) then
     ! dt too small
     print *, '  Stopping integration.  dt too small.'
@@ -386,30 +392,23 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
   
   A = S*sin2phi+P*cos2phi
   B = R*L*sin2phi+P*S*(1.0_DP+cos2phi)
-  discriminant = B**2.0_DP-4.0_DP*A*R*L*P
+  discriminant = B**2-4.0_DP*A*R*L*P
   nsquared1 = (B+sqrt(discriminant))/(2.0_DP*A)
   nsquared2 = (B-sqrt(discriminant))/(2.0_DP*A)
   
   n1 = sqrt(nsquared1)
   n2 = sqrt(nsquared2)
   
-  k1 = w*n1/C
-  k2 = w*n2/C
-
-!!$  print *, 'nsquared1=', nsquared1
-!!$  print *, 'nsquared2=', nsquared2
-!!$  print *, 'B0mag=', B0mag
-!!$  print *, 'w=', w
-!!$  print *, 'qs=', qs
-!!$  print *, 'Ns=', Ns
-!!$  print *, 'ms=', ms
-!!$  print *, 'nus=', nus
-!!$  print *, 'nsquared1=', nsquared1
-!!$  print *, 'nsquared2=', nsquared2
-!!$  print *, 'k1=', k1
-!!$  print *, 'k2=', k2
-!!$pause
-!!$
+  ! Sort by magnitude of real part instead of using the +- ordering.
+  ! This should do a better job at keeping a continuous locus unless
+  ! there is a coalescence.  Is there a better way to do this?
+  if( abs(real(n1)) > abs(real(n2)) ) then
+     k2 = w*n1/C
+     k1 = w*n2/C
+  else
+     k1 = w*n1/C
+     k2 = w*n2/C
+  end if
 end subroutine solve_dispersion_relation
 
 function rk4(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData)
@@ -440,7 +439,73 @@ function rk4(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData)
   k4 = dt*raytracer_evalrhs(t+dt,x+k3, root, del, &
                             funcPlasmaParams, funcPlasmaParamsData)
   rk4 = x + 1.0_DP/6.0_DP*(k1+2.0_DP*k2+2.0_DP*k3+k4)
+
 end function rk4
+
+subroutine rk45(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData, &
+                out4, out5)
+  real(kind=DP),intent(in) :: x(:), t, dt, del
+  real(kind=DP),intent(out) :: out4(size(x)), out5(size(x))
+  complex(kind=DP) :: k1mag, k2mag, k(3)
+  integer :: root
+  interface 
+     subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
+       use types
+       real(kind=DP) :: x(3)
+       real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
+       real(kind=DP) :: B0(3)
+       character :: funcPlasmaParamsData(:)
+     end subroutine funcPlasmaParams
+  end interface
+  character :: funcPlasmaParamsData(:)
+
+  real(kind=DP) :: k1(size(x)),k2(size(x)),k3(size(x)),k4(size(x))
+  real(kind=DP) :: k5(size(x)),k6(size(x))
+  real(kind=DP) :: tmpx(size(x))
+
+  ! Integrate in time using rk45 (embedded 4,5 scheme)
+  ! x' = f(t,x)
+  tmpx = x
+  k1 = dt*raytracer_evalrhs(t,tmpx, root, del, &
+                            funcPlasmaParams, funcPlasmaParamsData)
+  tmpx = x + ( rk45_a2(1)*k1 )
+  k2 = dt*raytracer_evalrhs(&
+         t + rk45_c(2)*dt, &
+         tmpx, &
+         root, del, funcPlasmaParams, funcPlasmaParamsData)
+  tmpx = x + ( rk45_a3(1)*k1 + rk45_a3(2)*k2 )
+  k3 = dt*raytracer_evalrhs(&
+         t + rk45_c(3)*dt, &
+         tmpx, &
+         root, del, funcPlasmaParams, funcPlasmaParamsData)
+  tmpx = x + ( rk45_a4(1)*k1 + rk45_a4(2)*k2 + rk45_a4(3)*k3 )
+  k4 = dt*raytracer_evalrhs(&
+         t + rk45_c(4)*dt, &
+         tmpx, &
+         root, del, funcPlasmaParams, funcPlasmaParamsData)
+  tmpx = x + ( rk45_a5(1)*k1 + rk45_a5(2)*k2 + rk45_a5(3)*k3 + &
+               rk45_a5(4)*k4 )
+  k5 = dt*raytracer_evalrhs(&
+         t + rk45_c(5)*dt, &
+         tmpx, &
+         root, del, funcPlasmaParams, funcPlasmaParamsData)
+  tmpx = x + ( rk45_a6(1)*k1 + rk45_a6(2)*k2 + rk45_a6(3)*k3 + &
+               rk45_a6(4)*k4 + rk45_a6(5)*k5 )
+  k6 = dt*raytracer_evalrhs(&
+         t + rk45_c(6)*dt, &
+         tmpx, &
+         root, del, funcPlasmaParams, funcPlasmaParamsData)
+
+  out4 = x + &
+       (rk45_b4(1)*k1 + rk45_b4(2)*k2 + rk45_b4(3)*k3 + &
+        rk45_b4(4)*k4 + rk45_b4(5)*k5 + rk45_b4(6)*k6)
+  out5 = x + &
+       (rk45_b5(1)*k1 + rk45_b5(2)*k2 + rk45_b5(3)*k3 + &
+        rk45_b5(4)*k4 + rk45_b5(5)*k5 + rk45_b5(6)*k6)
+
+end subroutine rk45
+
+
 
 subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      B0, qs, ms, Ns, nus, stopcond, &
@@ -476,6 +541,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   character :: funcPlasmaParamsData(:)
 
   real(kind=DP) :: dt, x(7), t, x0(7), dfdk(3), dfdw, est1(7), est2(7)
+  real(kind=DP) :: dfdk_est1(3), dfdk_est2(3)
   ! Temporary variables needed by call to get and output the plasma
   ! parameters at our next calculated point.
   real(kind=DP), allocatable :: qstmp(:), Nstmp(:), mstmp(:), nustmp(:)
@@ -552,34 +618,40 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
         exit
      end if
 
+     !print *, 't=', t
      if( fixedstep == 0 ) then
-        ! Adaptive timesteps
-        est1 = rk4(t, x, root, del, dt, &
-             funcPlasmaParams, funcPlasmaParamsData )
-        est2 = rk4(t, x, root, del, dt/2.0_DP, &
-             funcPlasmaParams, funcPlasmaParamsData)
-        est2 = rk4(t+dt/2.0_DP, est2, root, del, dt/2.0_DP, & 
-                   funcPlasmaParams, funcPlasmaParamsData)
+        ! Adaptive timesteps - use embedded rk45 scheme
+        call rk45( t, x, root, del, dt, &
+             funcPlasmaParams, funcPlasmaParamsData, est1, est2 )
+
         dtincr = dt
     
-        ! Only consider k in our relative error bound
-        err = sqrt(dot_product(est1(4:6)-est2(4:6),est1(4:6)-est2(4:6)) / &
-                   dot_product(est2(4:6),est2(4:6)))
-        
+        ! Compute the derivatives with respect to k too
+        dfdk_est1 = dispersion_relation_dFdk(est1(4:6), w, est1(1:3), del, &
+             funcPlasmaParams, funcPlasmaParamsData)
+        dfdk_est2 = dispersion_relation_dFdk(est2(4:6), w, est2(1:3), del, &
+             funcPlasmaParams, funcPlasmaParamsData)
+
+        ! Error term is the max of the relative errors in dfdk AND k
+        ! This provides better error control when magnetospherically reflecting
+        err = max( &
+             sum(abs(est1(4:6)-est2(4:6))) / sum(abs(est2(4:6))), &
+             sum(abs(dfdk_est1-dfdk_est2))/sum(abs(dfdk_est2)))
+
         if( err > maxerr ) then
            ! retry
            !print *, 'Refine down'
-           dt=dt/2.0_DP
+           dt=0.8_DP*dt
            ! Prevent refinement loops
            lastrefinedown = 1
            cycle
         end if
         if( lastrefinedown==0 .and. &
            err < maxerr/10.0_DP .and. &
-           dt*2.0_DP < dtmax ) then
+           dt*1.25_DP < dtmax ) then
            !print *, 'Refine up'
            ! Refine up
-           dt=dt*2.0_DP
+           dt=dt*1.25_DP
            lastrefinedown = 0
         end if
      else
@@ -608,11 +680,12 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
         if( fixedstep == 0 ) then
            ! Force a refinement if we've popped outside the resonance cone.
            !print *, 'Refine down: outside of resonance cone'
-           dt=dt/4
+           dt=dt/2.0_DP
            lastrefinedown = 1
            cycle
         else
-           print *, 'Cannot continue with fixed timestep.  Outside resonance cone.'
+           print *, &
+                'Cannot continue with fixed timestep - outside resonance cone.'
            print *, 'Try reducing timestep or using adaptive timestepping.'
            return
         end if
@@ -633,7 +706,6 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      ! Find plasma parameters at our new point
      call funcPlasmaParams(x(1:3), qstmp, Nstmp, mstmp, nustmp, B0tmp, &
                            funcPlasmaParamsData)
-
 
 !!$     print *, 'pos=',  x(1:3)
 !!$     print *, 'time=',  t

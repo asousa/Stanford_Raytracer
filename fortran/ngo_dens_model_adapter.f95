@@ -6,7 +6,7 @@ module ngo_dens_model_adapter
   use constants, only : R_E, PI
   ! The ngo density model doesn't have a proper interface, so 
   ! just pull the variables we need into scope
-  use ngo_dens_model, only : readinput, dens, ani, z, L, R0
+  use ngo_dens_model, only : readinput, dens, ani, z, L, R0, latitu
   use bmodel_dipole
   implicit none
 
@@ -20,6 +20,7 @@ module ngo_dens_model_adapter
      integer :: itime(2)
      ! Tsyganenko parameters
      real(kind=DP) :: Pdyn, Dst, ByIMF, BzIMF
+     real(kind=DP) :: W1, W2, W3, W4, W5, W6
      ! Whether to use (1) or not use (0) the tsyganenko corrections
      integer :: use_tsyganenko
      ! Whether to use (1) IGRF or not use (0) and use dipole instead
@@ -108,8 +109,8 @@ contains
     ! phi is angle from the z axis
     p = cartesian_to_spherical(x)
     ! L = r/(RE*sin^2(phi))
-    if( R_E*sin(p(3))**2.0_DP /= 0.0_DP ) then
-       L = p(1)/(R_E*sin(p(3))**2.0_DP)
+    if( R_E*sin(p(3))**2 /= 0.0_DP ) then
+       L = p(1)/(R_E*sin(p(3))**2)
     else
        L = 0.0_DP
     end if
@@ -117,10 +118,11 @@ contains
     lam = 90.0_DP-(p(3)*360.0_DP/2.0_DP/pi)
     lamr = d2r*lam
 
-    r = r0 * L * cos(lamr)**2.0_DP ! geocentric radii for all (L,lam) pairs
+    r = r0 * L * cos(lamr)**2 ! geocentric radii for all (L,lam) pairs
 
     z(1) = r
     z(2) = d2r*(90.0_DP-lam)
+    latitu = lam
     
     ! update
     call dens
@@ -155,6 +157,12 @@ contains
     parmod(2) = datap%p%Dst    !Dst:  between -100 and +20,
     parmod(3) = datap%p%ByIMF  !ByIMF: between -10 and +10 nT.
     parmod(4) = datap%p%BzIMF  !BzIMF: between -10 and +10 nT.
+    parmod(5) = datap%p%W1     !
+    parmod(6) = datap%p%W2     !
+    parmod(7) = datap%p%W3     !
+    parmod(8) = datap%p%W4     !
+    parmod(9) = datap%p%W5     !
+    parmod(10)= datap%p%W6     !
 
     ! Necessary call for the Tsyganenko geopack tools.  Also updates
     ! the common variable psi
@@ -174,7 +182,7 @@ contains
        B0zBASE = real(1.0e9_DP*B0tmp2(3))
     end if
     if( datap%p%use_tsyganenko == 1 ) then
-       call T96_01( iopt, real(parmod), real(psi), &
+       call T04_s( iopt, real(parmod), real(psi), &
             real(x_gsm(1)/R_E), real(x_gsm(2)/R_E), real(x_gsm(3)/R_E), &
             B0xTsy, B0yTsy, B0zTsy)
     else

@@ -84,7 +84,7 @@ d}]{hyperref}
     {\end{list}}
 
 \ifx\pdfoutput\undefined % We're not running pdftex
-\else
+d\else
 % Don't let graphicx grab png files (they're not what we want, we want
 % the pdf versions with the annotations when building a pdf file).
 \DeclareGraphicsExtensions{.pdf}
@@ -130,7 +130,11 @@ Basic operation:
   cone, so adaptive is always recommended
 \item {\bf maxerr} - Error bound for adaptive timestepping
 \item {\bf maxsteps} - Maximum number of steps
-\item {\bf modelnum} - Model (1=ngo, 2=GCPM (SLOW!!), 3=interpolated)
+\item {\bf minalt} - Minimum altitude (referenced from the center of
+  the earth)
+\item {\bf modelnum} - Model (1=ngo, 2=GCPM (SLOW!!), 3=interpolated
+  (gridded data),
+  4=interpolated (scattered data))
 \end{itemize}
 
 {\bf Choose a plasmasphere model} ({\bf modelnum})
@@ -148,6 +152,11 @@ Basic operation:
   of number densities (format: log base e of the number density in
   $m^{-3}$.  E.g., use \\``gcpm\_dens\_model\_buildgrid'' to generate
   a grid for use with this model.
+\item {\bf 4}: Scattered interpolated model.  This takes as input a
+  scattered set of number densities (format: log base e of the number
+  density in $m^{-3}$.  E.g., use
+  \\``gcpm\_dens\_model\_buildgrid\_random'' to generate a data set for
+  use with this model.
 \end{itemize}
 
 {\bf Set up plasmasphere model parameters}
@@ -175,6 +184,18 @@ Basic operation:
     \item{\bf tsyganenko\_BzIMF}:
       IMF z component in nT, used by the Tsyganenko model - between
       -10 and +10 nT
+    \item{\bf tsyganenko\_W1}:
+      W1, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W2}:
+      W2, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W3}:
+      W3, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W4}:
+      W4, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W5}:
+      W5, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W6}:
+      W6, a model coefficient used by the Tsyganenko model
     \end{itemize}
   \item{\bf Model 2:  GCPM Parameters}
     \begin{itemize}
@@ -199,6 +220,18 @@ Basic operation:
     \item{\bf tsyganenko\_BzIMF}:
       IMF z component in nT, used by the Tsyganenko model - between
       -10 and +10 nT
+    \item{\bf tsyganenko\_W1}:
+      W1, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W2}:
+      W2, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W3}:
+      W3, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W4}:
+      W4, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W5}:
+      W5, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W6}:
+      W6, a model coefficient used by the Tsyganenko model
     \end{itemize}
   \item{\bf Model 3: Interpolated parameters}
     \begin{itemize}
@@ -223,6 +256,18 @@ Basic operation:
     \item{\bf tsyganenko\_BzIMF}:
       IMF z component in nT, used by the Tsyganenko model - between
       -10 and +10 nT
+    \item{\bf tsyganenko\_W1}:
+      W1, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W2}:
+      W2, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W3}:
+      W3, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W4}:
+      W4, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W5}:
+      W5, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W6}:
+      W6, a model coefficient used by the Tsyganenko model
     \end{itemize}
 
   \item{\bf Model 4: Scattered interpolator parameters}
@@ -248,6 +293,18 @@ Basic operation:
     \item{\bf tsyganenko\_BzIMF}:
       IMF z component in nT, used by the Tsyganenko model - between
       -10 and +10 nT
+    \item{\bf tsyganenko\_W1}:
+      W1, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W2}:
+      W2, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W3}:
+      W3, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W4}:
+      W4, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W5}:
+      W5, a model coefficient used by the Tsyganenko model
+    \item{\bf tsyganenko\_W6}:
+      W6, a model coefficient used by the Tsyganenko model
     \item{\bf scattered\_interp\_window\_scale}: This is the factor
       above the maximum sample spacing of the moving least squares
       sphere (the points that are actually considered for
@@ -431,6 +488,7 @@ are identical to those described in testrun.m.  The command-line
 arguments are as follows:
 
 \begin{verbatim}
+Raytracer version 1.09
  Usage:
    program --param1=value1 --param2=value2 ...
    
@@ -442,11 +500,13 @@ arguments are as follows:
  --fixedstep     fixed timesteps (1) or adaptive (0)
  --maxerr        maximum error for adaptive timestepping
  --maxsteps      maximum number of timesteps
+ --minalt        minimum altitude
  --inputraysfile ray input filename
  --outputfile    output filename
  --modelnum      (1) Ngo model
                  (2) GCPM ionosphere model
-                 (3) Interpolated model
+                 (3) Interpolated model (gridded data)
+                 (4) Interpolated model (scattered data)
   Ngo Parameters (required if model 1 is chosen):
     --ngo_configfile     newray input filename
     --yearday            year and day, e.g., 1999098
@@ -457,6 +517,12 @@ arguments are as follows:
     --tsyganenko_Dst     between -100 and +20 in nT
     --tsyganenko_ByIMF   between -10 and +10 nT
     --tsyganenko_BzIMF   between -10 and +10 nT
+    --tsyganenko_W1      TS04_s W1
+    --tsyganenko_W2      TS04_s W2
+    --tsyganenko_W3      TS04_s W3
+    --tsyganenko_W4      TS04_s W4
+    --tsyganenko_W5      TS04_s W5
+    --tsyganenko_W6      TS04_s W6
   GCPM Parameters (required if model 2 is chosen):
     --gcpm_kp            kp index
     --yearday            year and day, e.g., 1999098
@@ -467,6 +533,12 @@ arguments are as follows:
     --tsyganenko_Dst     between -100 and +20 in nT
     --tsyganenko_ByIMF   between -10 and +10 nT
     --tsyganenko_BzIMF   between -10 and +10 nT
+    --tsyganenko_W1      TS04_s W1
+    --tsyganenko_W2      TS04_s W2
+    --tsyganenko_W3      TS04_s W3
+    --tsyganenko_W4      TS04_s W4
+    --tsyganenko_W5      TS04_s W5
+    --tsyganenko_W6      TS04_s W6
   Interp parameters (required if model 3 is chosen):
     --interp_interpfile  grid filename
     --yearday            year and day, e.g., 1999098
@@ -477,6 +549,12 @@ arguments are as follows:
     --tsyganenko_Dst     between -100 and +20 in nT
     --tsyganenko_ByIMF   between -10 and +10 nT
     --tsyganenko_BzIMF   between -10 and +10 nT
+    --tsyganenko_W1      TS04_s W1
+    --tsyganenko_W2      TS04_s W2
+    --tsyganenko_W3      TS04_s W3
+    --tsyganenko_W4      TS04_s W4
+    --tsyganenko_W5      TS04_s W5
+    --tsyganenko_W6      TS04_s W6
   Scattered interp parameters (required if model 4 is chosen):
     --interp_interpfile  data filename
     --yearday            year and day, e.g., 1999098
@@ -487,6 +565,12 @@ arguments are as follows:
     --tsyganenko_Dst     between -100 and +20 in nT
     --tsyganenko_ByIMF   between -10 and +10 nT
     --tsyganenko_BzIMF   between -10 and +10 nT
+    --tsyganenko_W1      TS04_s W1
+    --tsyganenko_W2      TS04_s W2
+    --tsyganenko_W3      TS04_s W3
+    --tsyganenko_W4      TS04_s W4
+    --tsyganenko_W5      TS04_s W5
+    --tsyganenko_W6      TS04_s W6
     --scattered_interp_window_scale
                          window radius scale factor above
                          maximum sample spacing
@@ -514,11 +598,11 @@ the magnetic field and plasma parameters along the ray path.  The
 Matlab script ``readrayoutput.m'' parses this file.
 
 \section{Adapting a new model}
-The raytracer includes 3 default plasmasphere models (Ngo, GCPM,
-interpolated), two magnetic field models (dipole and IGRF), and one
-magnetic field correction model (Tsyganenko).  The raytracer uses
-these models to compute the dispersion relation at arbitrary points in
-space.
+The raytracer includes 4 default plasmasphere models (Ngo, GCPM,
+interpolated, scattered interpolated), two magnetic field models
+(dipole and IGRF), and one magnetic field correction model
+(Tsyganenko).  The raytracer uses these models to compute the
+dispersion relation at arbitrary points in space.
 
 Adding a new model requires adding a new {\em adapter} to the
 raytracer and recompiling.  A sample adapter is included in
@@ -632,7 +716,7 @@ as an argument:
   call raytracer_run( &
        pos, time, vprel, vgrel, n, &
        B0, qs, ms, Ns, nus, stopcond, &
-       pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, root, tmax, &
+       pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
        fixedstep, del, funcPlasmaParams, data, raytracer_stopconditions)
 \end{verbatim}
 

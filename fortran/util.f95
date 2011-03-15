@@ -55,7 +55,7 @@ subroutine getopt_named( paramname, paramout, found )
   character(len=*), intent(in) :: paramname
   character(len=*), intent(out) :: paramout
   integer,intent(out) :: found
-  character(len=100) :: buffer
+  character(len=10000) :: buffer
 
   integer :: i,j,equalspos
   

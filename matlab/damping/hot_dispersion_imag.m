@@ -29,7 +29,8 @@ const;
 [S,D,P,R,L] = stix_parameters(w, qs, Ns, ms, nus, B0);
 
 % adaptive integration of the integrand over vperp, [0, inf]
-integrand_vperp = @(vperp) integrand( f, vperp, kperp, kpar, w, m, wch, ...
+integrand_vperp = @(vperp) integrand( f, vperp, kperp, kpar, w, m, ...
+                                      wch, qh, mh, ...
                                       R, L, P, S );
 
 % Normalize by approximately c
@@ -50,6 +51,5 @@ elseif( strcmp( INTEGMETHOD, 'fast' ) )
   integrated_integrand = quadl(integrand_t,0,1,TOL);
 end;
 
-% Should this be positive or negative?  Using the convention in Chen
-ret = -2*pi^2*((qh^2/mh/EPS0)/(w*abs(kpar))) * integrated_integrand;
-%ret = -2*pi^2*((wph^2/Nh)/(w*abs(kpar))) * integrated_integrand;
+%ret = -2*pi^2*((qh^2/mh/EPS0)/(w*abs(kpar))) * integrated_integrand;
+ret = integrated_integrand;

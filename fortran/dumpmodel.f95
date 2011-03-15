@@ -16,9 +16,9 @@ program dumpmodel
   USE ISO_FORTRAN_ENV ! for OUTPUT_UNIT definition, from 2003 standard
   implicit none
   
-  character(len=1000) :: filename, interp_interpfile, ngo_configfile
+  character(len=10000) :: filename, interp_interpfile, ngo_configfile
   integer,parameter :: outfile=50
-  character (len=1000) :: buffer
+  character (len=10000) :: buffer
   real(kind=DP), allocatable :: x(:), y(:), z(:) 
   integer :: nx,ny,nz, ind, nspec, i,j,k
   character, allocatable :: data(:)
@@ -62,7 +62,8 @@ program dumpmodel
      print *, '--filename  output filename'
      print *, '--modelnum  (1) Ngo model'
      print *, '            (2) GCPM ionosphere model'
-     print *, '            (3) Interpolated model'
+     print *, '            (3) Interpolated model (gridded data)'
+     print *, '            (4) Interpolated model (scattered data)'
      
      print *, ' Ngo Parameters (required if model 1 is chosen):'
      print *, '   --ngo_configfile     newray input filename'
@@ -74,6 +75,12 @@ program dumpmodel
      print *, '   --tsyganenko_Dst     between -100 and +20 in nT'
      print *, '   --tsyganenko_ByIMF   between -10 and +10 nT'
      print *, '   --tsyganenko_BzIMF   between -10 and +10 nT'
+     print *, '   --tsyganenko_W1      TS04_s W1'
+     print *, '   --tsyganenko_W2      TS04_s W2'
+     print *, '   --tsyganenko_W3      TS04_s W3'
+     print *, '   --tsyganenko_W4      TS04_s W4'
+     print *, '   --tsyganenko_W5      TS04_s W5'
+     print *, '   --tsyganenko_W6      TS04_s W6'
      ! GCPM parameters
      print *, ' GCPM Parameters (required if model 2 is chosen):'
      print *, '   --gcpm_kp            kp index'
@@ -85,6 +92,12 @@ program dumpmodel
      print *, '   --tsyganenko_Dst     between -100 and +20 in nT'
      print *, '   --tsyganenko_ByIMF   between -10 and +10 nT'
      print *, '   --tsyganenko_BzIMF   between -10 and +10 nT'
+     print *, '   --tsyganenko_W1      TS04_s W1'
+     print *, '   --tsyganenko_W2      TS04_s W2'
+     print *, '   --tsyganenko_W3      TS04_s W3'
+     print *, '   --tsyganenko_W4      TS04_s W4'
+     print *, '   --tsyganenko_W5      TS04_s W5'
+     print *, '   --tsyganenko_W6      TS04_s W6'
      ! Interpolated parameters
      print *, ' Interp parameters (required if model 3 is chosen):'
      print *, '   --interp_interpfile  grid filename'
@@ -96,6 +109,12 @@ program dumpmodel
      print *, '   --tsyganenko_Dst     between -100 and +20 in nT'
      print *, '   --tsyganenko_ByIMF   between -10 and +10 nT'
      print *, '   --tsyganenko_BzIMF   between -10 and +10 nT'
+     print *, '   --tsyganenko_W1      TS04_s W1'
+     print *, '   --tsyganenko_W2      TS04_s W2'
+     print *, '   --tsyganenko_W3      TS04_s W3'
+     print *, '   --tsyganenko_W4      TS04_s W4'
+     print *, '   --tsyganenko_W5      TS04_s W5'
+     print *, '   --tsyganenko_W6      TS04_s W6'
      ! Scattered interpolator parameters
      print *, ' Scattered interp parameters (required if model 4 is chosen):'
      print *, '   --interp_interpfile  data filename'
@@ -107,6 +126,12 @@ program dumpmodel
      print *, '   --tsyganenko_Dst     between -100 and +20 in nT'
      print *, '   --tsyganenko_ByIMF   between -10 and +10 nT'
      print *, '   --tsyganenko_BzIMF   between -10 and +10 nT'
+     print *, '   --tsyganenko_W1      TS04_s W1'
+     print *, '   --tsyganenko_W2      TS04_s W2'
+     print *, '   --tsyganenko_W3      TS04_s W3'
+     print *, '   --tsyganenko_W4      TS04_s W4'
+     print *, '   --tsyganenko_W5      TS04_s W5'
+     print *, '   --tsyganenko_W6      TS04_s W6'
      print *, '   --scattered_interp_window_scale'
      print *, '                        window radius scale factor above'
      print *, '                        maximum sample spacing'
@@ -263,6 +288,36 @@ program dumpmodel
      if( foundopt == 1 ) then
         read (buffer,*) ngo_state_data%BzIMF
      end if
+     ! tsyganenko_W1
+     call getopt_named( 'tsyganenko_W1', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo_state_data%W1
+     end if
+     ! tsyganenko_W2
+     call getopt_named( 'tsyganenko_W2', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo_state_data%W2
+     end if
+     ! tsyganenko_W3
+     call getopt_named( 'tsyganenko_W3', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo_state_data%W3
+     end if
+     ! tsyganenko_W4
+     call getopt_named( 'tsyganenko_W4', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo_state_data%W4
+     end if
+     ! tsyganenko_W5
+     call getopt_named( 'tsyganenko_W5', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo_state_data%W5
+     end if
+     ! tsyganenko_W6
+     call getopt_named( 'tsyganenko_W6', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo_state_data%W6
+     end if
 
      ! Marshall our data to the callback
      ! associate a pointer to the state data provided by the user
@@ -285,6 +340,12 @@ program dumpmodel
      print *, '   tsyganenko_Dst:   ', ngo_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', ngo_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', ngo_state_data%BzIMF
+     print *, '   tsyganenko_W1:    ', ngo_state_data%W1
+     print *, '   tsyganenko_W2:    ', ngo_state_data%W2
+     print *, '   tsyganenko_W3:    ', ngo_state_data%W3
+     print *, '   tsyganenko_W4:    ', ngo_state_data%W4
+     print *, '   tsyganenko_W5:    ', ngo_state_data%W5
+     print *, '   tsyganenko_W6:    ', ngo_state_data%W6
      flush(OUTPUT_UNIT)
 
      ! Allocate space for the data
@@ -358,6 +419,36 @@ program dumpmodel
      if( foundopt == 1 ) then
         read (buffer,*) gcpm_state_data%BzIMF
      end if
+     ! tsyganenko_W1
+     call getopt_named( 'tsyganenko_W1', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) gcpm_state_data%W1
+     end if
+     ! tsyganenko_W2
+     call getopt_named( 'tsyganenko_W2', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) gcpm_state_data%W2
+     end if
+     ! tsyganenko_W3
+     call getopt_named( 'tsyganenko_W3', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) gcpm_state_data%W3
+     end if
+     ! tsyganenko_W4
+     call getopt_named( 'tsyganenko_W4', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) gcpm_state_data%W4
+     end if
+     ! tsyganenko_W5
+     call getopt_named( 'tsyganenko_W5', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) gcpm_state_data%W5
+     end if
+     ! tsyganenko_W6
+     call getopt_named( 'tsyganenko_W6', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) gcpm_state_data%W6
+     end if
 
      ! Marshall our data to the callback
      ! associate a pointer to the state data provided by the user
@@ -377,6 +468,12 @@ program dumpmodel
      print *, '   tsyganenko_Dst:   ', gcpm_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', gcpm_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', gcpm_state_data%BzIMF
+     print *, '   tsyganenko_W1:    ', gcpm_state_data%W1
+     print *, '   tsyganenko_W2:    ', gcpm_state_data%W2
+     print *, '   tsyganenko_W3:    ', gcpm_state_data%W3
+     print *, '   tsyganenko_W4:    ', gcpm_state_data%W4
+     print *, '   tsyganenko_W5:    ', gcpm_state_data%W5
+     print *, '   tsyganenko_W6:    ', gcpm_state_data%W6
      flush(OUTPUT_UNIT)
 
      ! Allocate space for the data
@@ -451,6 +548,36 @@ program dumpmodel
      if( foundopt == 1 ) then
         read (buffer,*) interp_state_data%BzIMF
      end if
+     ! tsyganenko_W1
+     call getopt_named( 'tsyganenko_W1', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) interp_state_data%W1
+     end if
+     ! tsyganenko_W2
+     call getopt_named( 'tsyganenko_W2', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) interp_state_data%W2
+     end if
+     ! tsyganenko_W3
+     call getopt_named( 'tsyganenko_W3', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) interp_state_data%W3
+     end if
+     ! tsyganenko_W4
+     call getopt_named( 'tsyganenko_W4', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) interp_state_data%W4
+     end if
+     ! tsyganenko_W5
+     call getopt_named( 'tsyganenko_W5', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) interp_state_data%W5
+     end if
+     ! tsyganenko_W6
+     call getopt_named( 'tsyganenko_W6', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) interp_state_data%W6
+     end if
 
      ! Marshall our data to the callback
      ! associate a pointer to the state data provided by the user
@@ -470,6 +597,12 @@ program dumpmodel
      print *, '   tsyganenko_Dst:   ', interp_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', interp_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', interp_state_data%BzIMF
+     print *, '   tsyganenko_W1:    ', interp_state_data%W1
+     print *, '   tsyganenko_W2:    ', interp_state_data%W2
+     print *, '   tsyganenko_W3:    ', interp_state_data%W3
+     print *, '   tsyganenko_W4:    ', interp_state_data%W4
+     print *, '   tsyganenko_W5:    ', interp_state_data%W5
+     print *, '   tsyganenko_W6:    ', interp_state_data%W6
 
      ! Additional model setup
      print *, 'Reading input file'
@@ -551,6 +684,36 @@ program dumpmodel
      if( foundopt == 1 ) then
         read (buffer,*) scattered_interp_state_data%BzIMF
      end if
+     ! tsyganenko_W1
+     call getopt_named( 'tsyganenko_W1', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) scattered_interp_state_data%W1
+     end if
+     ! tsyganenko_W2
+     call getopt_named( 'tsyganenko_W2', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) scattered_interp_state_data%W2
+     end if
+     ! tsyganenko_W3
+     call getopt_named( 'tsyganenko_W3', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) scattered_interp_state_data%W3
+     end if
+     ! tsyganenko_W4
+     call getopt_named( 'tsyganenko_W4', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) scattered_interp_state_data%W4
+     end if
+     ! tsyganenko_W5
+     call getopt_named( 'tsyganenko_W5', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) scattered_interp_state_data%W5
+     end if
+     ! tsyganenko_W6
+     call getopt_named( 'tsyganenko_W6', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) scattered_interp_state_data%W6
+     end if
      ! scattered_interp_radius
      call getopt_named( 'scattered_interp_window_scale', buffer, foundopt )
      if( foundopt == 1 ) then
@@ -597,6 +760,12 @@ program dumpmodel
      print *, '   tsyganenko_Dst:   ', scattered_interp_state_data%Dst
      print *, '   tsyganenko_ByIMF: ', scattered_interp_state_data%ByIMF
      print *, '   tsyganenko_BzIMF: ', scattered_interp_state_data%BzIMF
+     print *, '   tsyganenko_W1:    ', scattered_interp_state_data%W1
+     print *, '   tsyganenko_W2:    ', scattered_interp_state_data%W2
+     print *, '   tsyganenko_W3:    ', scattered_interp_state_data%W3
+     print *, '   tsyganenko_W4:    ', scattered_interp_state_data%W4
+     print *, '   tsyganenko_W5:    ', scattered_interp_state_data%W5
+     print *, '   tsyganenko_W6:    ', scattered_interp_state_data%W6
      print *, '   scattered_interp_window_scale: ', &
           scattered_interp_state_data%window_scale
      print *, '   scattered_interp_order: ', &
