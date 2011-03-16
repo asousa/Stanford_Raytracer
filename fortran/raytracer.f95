@@ -44,6 +44,7 @@ function dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   real(kind=DP) :: sin2phi, cos2phi
   real(kind=DP) :: S,D,P,R,L
   real(kind=DP) :: nmag2, A, B
+integer :: i
 
   ! Find the needed spherical components
   nmag2 = dot_product(n, n)
@@ -55,11 +56,21 @@ function dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   ! Find the stix parameters
   call stix_parameters(w, qs, Ns, ms, nus, sqrt(dot_product(B0,B0)), S,D,P,R,L)
 
+
   ! Old code
   A = S*sin2phi + P*cos2phi
   B = R*L*sin2phi + P*S*(1.0_DP+cos2phi)
   
-  dispersion_relation = A*nmag2**2 - B*nmag2 + R*L*P
+
+  ! If we're sufficiently above the plasma frequency, then treat it 
+  ! as free space
+  if(w>100.0_DP*sqrt((maxval(Ns)*maxval(abs(qs))**2))/(minval(ms)*EPS0)) then
+     dispersion_relation = -nmag2 + 1.0_DP
+  else
+     dispersion_relation = A*nmag2**2 - B*nmag2 + R*L*P
+  end if
+
+!print *, 'A=', A, ', B=', B, ', C=', R*L*P, ', dispers=', dispersion_relation
 end function dispersion_relation
 
 ! Compute the stix parameters for a multicomponent plasma
@@ -316,6 +327,7 @@ function raytracer_stopconditions(pos, k, w, vprel, vgrel, dt, nstep, &
   real(kind=DP) :: pos(3), k(3), w, vprel(3), vgrel(3), dt, minalt
   integer :: raytracer_stopconditions, nstep, maxsteps
 
+  !print *,' k=', k, ', w=', w, ', vprel=', vprel, ', vgrel=', vgrel
   raytracer_stopconditions = 0
   if( sqrt(dot_product(pos,pos)) < minalt ) then
     ! Minimum altitude reached
@@ -569,9 +581,9 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   t = 0.0_DP
   lastrefinedown = 0
 
-  dfdk = dispersion_relation_dFdk(x(4:6), w0, x(1:3), 1.0e-10_DP, &
+  dfdk = dispersion_relation_dFdk(x(4:6), w0, x(1:3), 1.0e-8_DP, &
                                   funcPlasmaParams, funcPlasmaParamsData)
-  dfdw = dispersion_relation_dFdw(x(4:6), w0, x(1:3), 1.0e-10_DP, &
+  dfdw = dispersion_relation_dFdw(x(4:6), w0, x(1:3), 1.0e-8_DP, &
                                   funcPlasmaParams, funcPlasmaParamsData)
 
   ! Find the plasma parameters at our starting point
@@ -604,6 +616,14 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
 
   nstep = 1
   do
+! FRF TEST DELETE
+!!$     ! Find plasma parameters at our new point
+!!$     call funcPlasmaParams(x(1:3), qstmp, Nstmp, mstmp, nustmp, B0tmp, &
+!!$                           funcPlasmaParamsData)
+!!$     print *, 'Ns=', Nstmp, ', ms=', mstmp, ', nu=', nustmp
+! FRF END TEST DELETE
+
+
      if( t >= tmax ) then
         ! Normal exit
         stopcond = 0
@@ -627,10 +647,10 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
         dtincr = dt
     
         ! Compute the derivatives with respect to k too
-        dfdk_est1 = dispersion_relation_dFdk(est1(4:6), w, est1(1:3), del, &
-             funcPlasmaParams, funcPlasmaParamsData)
-        dfdk_est2 = dispersion_relation_dFdk(est2(4:6), w, est2(1:3), del, &
-             funcPlasmaParams, funcPlasmaParamsData)
+        dfdk_est1 = dispersion_relation_dFdk(est1(4:6), w, est1(1:3), &
+             1.0e-8_DP, funcPlasmaParams, funcPlasmaParamsData)
+        dfdk_est2 = dispersion_relation_dFdk(est2(4:6), w, est2(1:3), &
+             1.0e-8_DP, funcPlasmaParams, funcPlasmaParamsData)
 
         ! Error term is the max of the relative errors in dfdk AND k
         ! This provides better error control when magnetospherically reflecting
@@ -699,9 +719,9 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      nstep = nstep + 1
      
      ! Group velocity
-     dfdk = dispersion_relation_dFdk(x(4:6), w, x(1:3), del, &
+     dfdk = dispersion_relation_dFdk(x(4:6), w, x(1:3), 1.0e-8_DP, &
           funcPlasmaParams, funcPlasmaParamsData)
-     dfdw = dispersion_relation_dFdw(x(4:6), w, x(1:3), del, &
+     dfdw = dispersion_relation_dFdw(x(4:6), w, x(1:3), 1.0e-8_DP, &
           funcPlasmaParams, funcPlasmaParamsData)
      ! Find plasma parameters at our new point
      call funcPlasmaParams(x(1:3), qstmp, Nstmp, mstmp, nustmp, B0tmp, &
@@ -710,6 +730,8 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
 !!$     print *, 'pos=',  x(1:3)
 !!$     print *, 'time=',  t
 !!$     print *, 'n=',  x(4:6)
+!!$     print *, 'pos=', x(1:3)
+!!$     print *, 'Ns=', Nstmp
 !!$     print *, 'dfdk=', dfdk
 !!$     print *, 'dfdw=', dfdw
 
