@@ -13,7 +13,6 @@ function [ki] = spatialdamping(f, kperp, kpar, w, m, wch, qh, mh, ...
 % m:      resonances, a vector of resonances to sum in this integrand
 % qh:     vector of hot charges, negative for electrons
 % mh:     vector of hot masses
-% Nh:     vector of hot plasma number densities
 % qs:     vector of charges
 % Ns:     vector of number densities in m^-3
 % ms:     vector of masses

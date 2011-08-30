@@ -18,8 +18,16 @@ const;
 theta = atan2(kperp,kpar);
 % Refractive index
 n = clight/w*sqrt(kperp^2+kpar^2);
-
 A = S*sin(theta)^2 + P*cos(theta)^2;
 B = R*L*sin(theta)^2 + P*S*(1+cos(theta)^2);
 C = R*L*P;
 ret = 4*(A*n^4 - B*n^2 + C);
+
+% ret should equal the determinant of this.  It does.
+% $$$ blah = [2*(R-n^2+1/2*n^2*sin(theta)^2), n^2*sin(theta)^2, n^2*cos(theta)* ...
+% $$$         sin(theta);
+% $$$         n^2*sin(theta)^2, 2*(L-n^2+1/2*n^2*sin(theta)^2), n^2*cos(theta)* ...
+% $$$         sin(theta);
+% $$$         n^2*cos(theta)*sin(theta), n^2*cos(theta)*sin(theta), P-n^2* ...
+% $$$         sin(theta)^2];
+

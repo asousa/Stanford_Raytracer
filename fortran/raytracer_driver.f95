@@ -213,8 +213,8 @@ program raytracer_driver
   print *, '       maxerr: ', maxerr
   print *, '     maxsteps: ', maxsteps
   print *, '       minalt: ', minalt
-  print *, 'inputraysfile: ', inputraysfile(1:len_trim(inputraysfile))
-  print *, '   outputfile: ', outputfile(1:len_trim(outputfile))
+  print *, 'inputraysfile: ', trim(inputraysfile)
+  print *, '   outputfile: ', trim(outputfile)
   print *, '     modelnum: ', modelnum
   flush(OUTPUT_UNIT)
 
@@ -325,7 +325,7 @@ program raytracer_driver
      call ngosetup(ngo_state_data, ngo_configfile)
 
      print *, 'Ngo Model parameters:'
-     print *, '   ngo_configfile:   ', ngo_configfile
+     print *, '   ngo_configfile:   ', trim(ngo_configfile)
      print *, '   yearday:          ', ngo_state_data%itime(1)
      print *, '   milliseconds_day: ', ngo_state_data%itime(2)
      print *, '   use_tsyganenko:   ', ngo_state_data%use_tsyganenko
@@ -549,7 +549,7 @@ program raytracer_driver
      data = transfer(interp_state_dataP, data)
 
      print *, 'Interpolatod model parameters:'
-     print *, '   interp_interpfile:', interp_interpfile
+     print *, '   interp_interpfile:', trim(interp_interpfile)
      print *, '   yearday:          ', interp_state_data%itime(1)
      print *, '   milliseconds_day: ', interp_state_data%itime(2)
      print *, '   use_tsyganenko:   ', interp_state_data%use_tsyganenko
@@ -695,7 +695,7 @@ program raytracer_driver
      data = transfer(scattered_interp_state_dataP, data)
      
      print *, 'Scattered interpolator model parameters:'
-     print *, '   interp_interpfile:', interp_interpfile
+     print *, '   interp_interpfile:', trim(interp_interpfile)
      print *, '   yearday:          ', scattered_interp_state_data%itime(1)
      print *, '   milliseconds_day: ', scattered_interp_state_data%itime(2)
      print *, '   use_tsyganenko:   ', &

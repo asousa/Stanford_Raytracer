@@ -53,9 +53,10 @@ contains
     character (len=*),intent(in) :: filename
     type(interpStateData),intent(inout) :: dat
     integer,parameter :: infile=60
-    integer :: ind, i
+    integer :: ind, i,j,k,l
 
     open(unit=infile, file=filename, status="old")
+
     !!! Read in the header
     ! Read in the sizes
     read(infile, *), dat%computederivatives, &
@@ -80,7 +81,6 @@ contains
     allocate(dat%d2fdxdz(dat%nspec, dat%nx,dat%ny,dat%nz))
     allocate(dat%d2fdydz(dat%nspec, dat%nx,dat%ny,dat%nz))
     allocate(dat%d3fdxdydz(dat%nspec, dat%nx,dat%ny,dat%nz))
-
     
     allocate(dat%x(dat%nx))
     allocate(dat%y(dat%ny))
@@ -94,7 +94,16 @@ contains
     dat%y = (/ (ind, ind=0,dat%ny-1) /)*dat%dely + dat%miny
     dat%z = (/ (ind, ind=0,dat%nz-1) /)*dat%delz + dat%minz
 
-    read(infile, *), dat%f
+    !read(infile, *), dat%f
+    ! Change to slow read to work around an apparent bug in the windows 
+    ! fortran compiler.
+    do l=1,dat%nz
+       do k=1,dat%ny
+          do j=1,dat%nx
+             read(infile, *), (dat%f(i,j,k,l),i=1,dat%nspec)
+          end do
+       end do
+    end do
 
     if( dat%computederivatives == 1 ) then
        ! If derivatives were provided, then use them

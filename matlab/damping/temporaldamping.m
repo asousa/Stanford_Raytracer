@@ -11,13 +11,13 @@ function [gamma] = temporaldamping(f, kperp, kpar, w, m, wch, qh, mh, ...
 % kpar:   parallel component of k vector
 % w:      frequency
 % m:      resonances, a vector of resonances to sum in this integrand
+% wch:    vector of hot (signed) gyrofrequencies, negative for electrons
 % qh:     vector of hot charges, negative for electrons
 % mh:     vector of hot masses
-% Nh:     vector of hot plasma number densities
-% qs:     vector of charges
-% Ns:     vector of number densities in m^-3
-% ms:     vector of masses
-% nus:    vector of collision frequencies
+% qs:     vector of (cold) charges
+% Ns:     vector of (cold) number densities in m^-3
+% ms:     vector of (cold) masses
+% nus:    vector of (cold) collision frequencies
 % B0:     the magnetic field magnitude
 % TOL:    integration tolerance
 % INTEGMETHOD: integration method, either 'fast' (matlab builtin), or 

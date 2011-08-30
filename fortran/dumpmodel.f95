@@ -229,7 +229,7 @@ program dumpmodel
   print *, '       nx: ', nx
   print *, '       ny: ', ny
   print *, '       nz: ', nz
-  print *, ' filename: ', filename
+  print *, ' filename: ', trim(filename)
   flush(OUTPUT_UNIT)
      
   if( modelnum == 1 ) then
@@ -331,7 +331,7 @@ program dumpmodel
      call ngosetup(ngo_state_data, ngo_configfile)
 
      print *, 'Ngo Model parameters:'
-     print *, '   ngo_configfile:   ', ngo_configfile
+     print *, '   ngo_configfile:   ', trim(ngo_configfile)
      print *, '   yearday:          ', ngo_state_data%itime(1)
      print *, '   milliseconds_day: ', ngo_state_data%itime(2)
      print *, '   use_tsyganenko:   ', ngo_state_data%use_tsyganenko
@@ -588,7 +588,7 @@ program dumpmodel
      data = transfer(interp_state_dataP, data)
      
      print *, 'Interpolated model parameters:'
-     print *, '   interp_interpfile:', interp_interpfile
+     print *, '   interp_interpfile:', trim(interp_interpfile)
      print *, '   yearday:          ', interp_state_data%itime(1)
      print *, '   milliseconds_day: ', interp_state_data%itime(2)
      print *, '   use_tsyganenko:   ', interp_state_data%use_tsyganenko
@@ -750,7 +750,7 @@ program dumpmodel
      data = transfer(scattered_interp_state_dataP, data)
      
      print *, 'Scattered interpolator model parameters:'
-     print *, '   interp_interpfile:', interp_interpfile
+     print *, '   interp_interpfile:', trim(interp_interpfile)
      print *, '   yearday:          ', scattered_interp_state_data%itime(1)
      print *, '   milliseconds_day: ', scattered_interp_state_data%itime(2)
      print *, '   use_tsyganenko:   ', &
