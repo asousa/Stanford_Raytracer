@@ -32,7 +32,7 @@ program raytracer_driver
   integer,parameter :: infile=51, outfile=50
   character, allocatable :: data(:)
   real(kind=DP) :: tmpinput
-  integer :: modelnum, sz, status, raynum, foundopt
+  integer :: modelnum, sz, status, raynum, foundopt, outputper
 
   type(ngoStateData),target :: ngo_state_data
   type(ngoStateDataP) :: ngo_state_datap
@@ -54,7 +54,6 @@ program raytracer_driver
      print *, 'Usage:'
      print *, '  program --param1=value1 --param2=value2 ...'
      print *, '  '
-     print *, '--w             frequency in rad/s'
      print *, '--dt0           initial timestep in seconds'
      print *, '--dtmax         maximum timestep in seconds'
      print *, '--tmax          maximum time for simulation'
@@ -65,6 +64,7 @@ program raytracer_driver
      print *, '--minalt        minimum altitude'
      print *, '--inputraysfile ray input filename'
      print *, '--outputfile    output filename'
+     print *, '--outputper     output fields only every "outputper" steps'
      print *, '--modelnum      (1) Ngo model'
      print *, '                (2) GCPM ionosphere model'
      print *, '                (3) Interpolated model (gridded data)'
@@ -154,12 +154,6 @@ program raytracer_driver
      stop
   end if
 
-
-  ! radian frequency
-  call getopt_named( 'w', buffer, foundopt )
-  if( foundopt == 1 ) then
-     read(buffer,*) w
-  end if
   ! Initial dt
   call getopt_named( 'dt0', buffer, foundopt )
   if( foundopt == 1 ) then
@@ -203,8 +197,14 @@ program raytracer_driver
      modelnum = floor(tmpinput)
   end if
   
+  outputper = 1
+  call getopt_named( 'outputper', buffer, foundopt )
+  if( foundopt == 1 ) then
+     read (buffer,*) tmpinput
+     outputper = floor(tmpinput)
+  end if
+  
   print *, 'Common parameters'
-  print *, '            w: ', w
   print *, '          dt0: ', dt0
   print *, '        dtmax: ', dtmax
   print *, '         tmax: ', tmax
@@ -215,6 +215,7 @@ program raytracer_driver
   print *, '       minalt: ', minalt
   print *, 'inputraysfile: ', trim(inputraysfile)
   print *, '   outputfile: ', trim(outputfile)
+  print *, '    outputper: ', outputper
   print *, '     modelnum: ', modelnum
   flush(OUTPUT_UNIT)
 
@@ -736,12 +737,12 @@ program raytracer_driver
   raynum = 1
   do
      ! Read in the next ray starting point and direction
-     read(infile, *,iostat=status), pos0, dir0
+     read(infile, *,iostat=status), pos0, dir0, w
      if( status /= 0 ) then
         ! end of file or error, abort the loop
         exit
      end if
-     print *, 'ray ', raynum, ', pos0=', pos0, ', dir0=', dir0
+     print *, 'ray ', raynum, ', pos0=', pos0, ', dir0=', dir0, ', w=', w
      flush(OUTPUT_UNIT)
      if( modelnum == 1 ) then
         call raytracer_run( &
@@ -769,13 +770,13 @@ program raytracer_driver
              fixedstep, del, fscatteredinterp, data, raytracer_stopconditions)
      end if
      ! Write the data to the output file
-     do i=1,size(time,1)
+     do i=1,size(time,1),outputper
         write(outfile, &
-             fmt='(i10, i10, 16es24.15e3, i10)', &
+             fmt='(i10, i10, 17es24.15e3, i10)', &
              advance='no'), &
              raynum, stopcond, &
              time(i), pos(:,i), vprel(:,i), vgrel(:,i), n(:,i), &
-             B0(:,i), size(qs,1)
+             B0(:,i), w, size(qs,1)
         do j=1,size(qs,1)
            write(outfile, fmt='(es24.15e3)',  advance='no'), qs(j,i)
         end do

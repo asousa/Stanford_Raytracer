@@ -119,7 +119,6 @@ Basic operation:
 
 {\bf Set up global parameters}
 \begin{itemize}
-\item {\bf w} - Ray frequency in rad/s
 \item {\bf dt0} - Initial timestep in seconds
 \item {\bf dtmax} - Maximum allowable timestep in seconds
 \item {\bf root} - Which root of the appleton-hartree equation
@@ -492,7 +491,6 @@ Raytracer version 1.09
  Usage:
    program --param1=value1 --param2=value2 ...
    
- --w             frequency in rad/s
  --dt0           initial timestep in seconds
  --dtmax         maximum timestep in seconds
  --tmax          maximum time for simulation
@@ -583,19 +581,21 @@ Raytracer version 1.09
                          sample spacing
 \end{verbatim}
 
-The input file ``inputraysfile'' gives the ray starting positions and
-initial wavenormal directions, one ray per line, e.g.:
+The input file ``inputraysfile'' gives the ray starting positions,
+initial wavenormal directions, and frequency (in rad/s), one ray per
+line, e.g.:
 \begin{verbatim}
-  1.0E007 0.0 0.0 0.0 0.0 1.0
+  1.0E007 0.0 0.0 0.0 0.0 1.0 6.28e4
 \end{verbatim}
 This input file launches one ray at position (1e7,0,0) with an initial
-wavenormal direction of (0,0,1).  By convention, every model uses SM
-(solar magnetic) coordinates.
+wavenormal direction of (0,0,1) and a frequency of 6.28e4 rad/s
+(approximately 10 kHz).  By convention, every model uses SM (solar
+magnetic) coordinates.
 
 The output file ``outputfile'' records the ray positions, the time
-since start, positions, wavenormals, relative group velocities, and
-the magnetic field and plasma parameters along the ray path.  The
-Matlab script ``readrayoutput.m'' parses this file.
+since start, positions, wavenormals, relative group velocities, ray
+frequencies, and the magnetic field and plasma parameters along the
+ray path.  The Matlab script ``readrayoutput.m'' parses this file.
 
 \section{Adapting a new model}
 The raytracer includes 4 default plasmasphere models (Ngo, GCPM,

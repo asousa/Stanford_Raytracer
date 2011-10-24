@@ -44,7 +44,6 @@ function dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   real(kind=DP) :: sin2phi, cos2phi
   real(kind=DP) :: S,D,P,R,L
   real(kind=DP) :: nmag2, A, B
-integer :: i
 
   ! Find the needed spherical components
   nmag2 = dot_product(n, n)
@@ -616,14 +615,6 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
 
   nstep = 1
   do
-! FRF TEST DELETE
-!!$     ! Find plasma parameters at our new point
-!!$     call funcPlasmaParams(x(1:3), qstmp, Nstmp, mstmp, nustmp, B0tmp, &
-!!$                           funcPlasmaParamsData)
-!!$     print *, 'Ns=', Nstmp, ', ms=', mstmp, ', nu=', nustmp
-! FRF END TEST DELETE
-
-
      if( t >= tmax ) then
         ! Normal exit
         stopcond = 0
