@@ -1,5 +1,8 @@
 .SUFFIXES : .f95 .mod
 
+FLAGS += -static-libgfortran
+
+
 ifeq "$(OS)" "Windows_NT"
 RM = del
 EXT = .exe

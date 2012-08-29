@@ -23,7 +23,8 @@ function [ki] = spatialdamping(f, kperp, kpar, w, m, wch, qh, mh, ...
 %              'accurate', a better quadrature method that almost always
 %              converges, but is slower
 
-const;
+physconst;
+
 % angle of wavenormal with respect to B0
 theta = atan2(kperp,kpar);
 % Refractive index

@@ -355,7 +355,6 @@ program dumpmodel
      
      ! Grab the data
      do k=1,nz
-        print *, 'k=',k, '/', nz
         flush(OUTPUT_UNIT)
         do j=1,ny
            do i=1,nx
@@ -619,7 +618,6 @@ program dumpmodel
      
      ! Grab the data
      do k=1,nz
-        print *, 'k=',k, '/', nz
         flush(OUTPUT_UNIT)
         do j=1,ny
            do i=1,nx
@@ -792,7 +790,6 @@ program dumpmodel
      
      ! Grab the data
      do k=1,nz
-        print *, 'k=',k, '/', nz
         flush(OUTPUT_UNIT)
         do j=1,ny
            do i=1,nx

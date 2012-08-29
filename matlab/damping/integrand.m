@@ -16,7 +16,8 @@ function [ret] = integrand(f, vperp, kperp, kpar, w, m, wch, qh, mh, ...
 % P:      stix P parameter (Parallel mode)
 % S:      stix S parameter
 
-const;
+physconst;
+
 % angle of wavenormal with respect to B0
 theta = atan2(kperp,kpar);
 % Refractive index

@@ -25,7 +25,9 @@ function [ret] = hot_dispersion_imag(f, kperp, kpar, w, m, wch, qh, mh, ...
 %              'accurate', a better quadrature method that almost always
 %              converges, but is slower
 
-const;
+
+physconst;
+
 [S,D,P,R,L] = stix_parameters(w, qs, Ns, ms, nus, B0);
 
 % adaptive integration of the integrand over vperp, [0, inf]
@@ -41,7 +43,6 @@ integrand_vperpnorm = @(vperp) k*integrand_vperp(vperp*k);
 integrand_t = @(t) ...
     ((1+eps)./(t.^2+eps)).*integrand_vperpnorm((1-t+eps)./(t+eps));
 
-
 if( strcmp( INTEGMETHOD, 'accurate' ) )
   % This method is pretty reliable.
   [integrated_integrand,errbnd] = quadva(integrand_t,[0,1],TOL,eps);
@@ -49,6 +50,14 @@ elseif( strcmp( INTEGMETHOD, 'fast' ) )
   % Integrate
   % matlab builtin struggles with this function
   integrated_integrand = quadl(integrand_t,0,1,TOL);
+% $$$   disp('test')
+% $$$   integrated_integrand = quad(integrand_t,0,1,TOL)
+% $$$   integrated_integrand = quadl(integrand_t,0,1,TOL)
+% $$$   integrated_integrand = quadgk(integrand_t,0,1)
+% $$$   integrated_integrand = quadva(integrand_t,[0,1],TOL,eps)
+% $$$   t=linspace(0,1,10000);
+% $$$   plot(t,integrand_t(t))
+% $$$   pause
 end;
 
 %ret = -2*pi^2*((qh^2/mh/EPS0)/(w*abs(kpar))) * integrated_integrand;

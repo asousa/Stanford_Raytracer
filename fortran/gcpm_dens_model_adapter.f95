@@ -78,6 +78,24 @@ contains
     ! Unmarshall the callback data
     datap = transfer(funcPlasmaParamsData, datap)
 
+!!$    print *, 'itime=', datap%p%itime
+!!$    print *, 'akp=', datap%p%akp
+!!$    print *, 'Pdyn=', datap%p%Pdyn
+!!$    print *, 'Dst=', datap%p%Dst
+!!$    print *, 'ByIMF=', datap%p%BzIMF
+!!$    print *, 'W1=', datap%p%W1
+!!$    print *, 'W2=', datap%p%W2
+!!$    print *, 'W3=', datap%p%W3
+!!$    print *, 'W4=', datap%p%W4
+!!$    print *, 'W5=', datap%p%W5
+!!$    print *, 'W6=', datap%p%W6
+!!$    print *, 'use_tsyganenko=', datap%p%use_tsyganenko
+!!$    print *, 'use_igrf=', datap%p%use_igrf
+!!$    stop
+    
+
+
+
     ! Allocate data if not already
     if (.not.(allocated(qs))) then
        allocate(qs(4))

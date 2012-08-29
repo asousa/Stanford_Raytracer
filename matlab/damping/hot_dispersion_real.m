@@ -11,7 +11,8 @@ function [ret] = hot_dispersion_real(kperp, kpar, w, qs, Ns, ms, nus, B0)
 % nus:    vector of collision frequencies
 % B0:     the magnetic field magnitude
 
-const;
+physconst;
+
 [S,D,P,R,L] = stix_parameters(w, qs, Ns, ms, nus, B0);
 
 % angle of wavenormal with respect to B0

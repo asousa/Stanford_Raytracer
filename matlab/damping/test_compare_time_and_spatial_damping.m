@@ -1,4 +1,4 @@
-const;
+physconst;
 addpath('../../bin');
 addpath('../');
 

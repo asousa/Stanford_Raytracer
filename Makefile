@@ -1,6 +1,6 @@
 SUBDIRS = xform xform_double iri2007 tsyganenko tricubic-for gcpm fortran
-export G95 = gfortran-mp-4.4
-#export G95 = gfortran
+#export G95 = gfortran-mp-4.4
+export G95 = gfortran
 
 .PHONY: all
 all:
