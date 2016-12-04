@@ -176,5 +176,49 @@ subroutine svd(A, U,S,VT )
   
 end subroutine svd
 
+! Compute the SVD of the matrix A
+subroutine csvd(A, U,S,VT )
+  implicit none
+  complex(kind=DP),intent(in) :: A(:,:)
+  complex(kind=DP),intent(out) :: U(size(A,1), size(A,1))
+  real(kind=DP),intent(out) :: S(min(size(A,1), size(A,2)))
+  complex(kind=DP),intent(out) :: VT(size(A,2), size(A,2))
+  complex(kind=DP) :: Atmp(size(A,1), size(A,2))
+  integer :: info, lwork
+  complex(kind=DP), allocatable :: work(:)
+  real(kind=DP), allocatable :: rwork(:)
+  complex(kind=DP) :: worktmp(1)
+  Atmp = A
+  U = 0.0_DP
+  S = 0.0_DP
+  VT = 0.0_DP
+
+  if( size(A) > 0 ) then
+     ! Query the size of lwork
+     call zgesvd( 'A', 'A', size(A,1), size(A,2), Atmp, &
+          size(A,1), S, U, size(U,1), VT, size(VT,1), &
+          worktmp, -1, rwork, info )
+     lwork = floor(real(worktmp(1)))
+     allocate(rwork(5*min(size(A,2),size(A,1))))
+     allocate(work(lwork))
+     ! Make the real call
+     call zgesvd( 'A', 'A', size(A,1), size(A,2), Atmp, &
+          size(A,1), S, U, size(U,1), VT, size(VT,1), &
+          work, lwork, rwork, info )
+     if( info /= 0 ) then
+        print *, 'SVD failed.  Cannot continue.'
+        stop
+     end if
+  end if
+
+  if( allocated( work ) ) then
+     deallocate(work)
+  end if
+  if( allocated( rwork ) ) then
+     deallocate(rwork)
+  end if
+  
+end subroutine csvd
+
 
 end module blas
