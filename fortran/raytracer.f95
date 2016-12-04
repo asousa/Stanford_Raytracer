@@ -620,13 +620,6 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   complex(kind=DP) :: k1mag, k2mag, k0mag, k(3), k0(3)
   real(kind=DP) :: dtincr, err, cur_pos(3), w
 
-  ! TESTING
-  call funcPlasmaParams(pos0, qstmp, Nstmp, mstmp, nustmp, B0tmp, &
-                        funcPlasmaParamsData)
-  dir0 = -B0tmp/sqrt(dot_product(B0tmp,B0tmp))
-  print *, 'dir0=', dir0
-  
-
   ! Find k at the given direction
   call solve_dispersion_relation( dir0, w0, pos0, k1mag, k2mag, &
                                   funcPlasmaParams, funcPlasmaParamsData)
