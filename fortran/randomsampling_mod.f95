@@ -45,7 +45,7 @@ contains
          use types
          implicit none
          real(kind=DP),intent(in) :: x(:)
-         real(kind=DP),intent(inout) :: val(:)
+         real(kind=DP),intent(inout), allocatable :: val(:)
        end subroutine f
     end interface
     integer :: dim, i, k
@@ -55,10 +55,11 @@ contains
     real(kind=DP) :: center(size(limit_min))
     real(kind=DP) :: lower(size(limit_min))
     real(kind=DP) :: upper(size(limit_min))
-    real(kind=DP) :: frt(fsize)
+    real(kind=DP),allocatable :: frt(:)
     real(kind=DP) :: meanvals(fsize)
     real(kind=DP) :: var, var1, vol
-    
+
+    allocate(frt(fsize))
 
     if( depth > maxdepth ) then
        print *, 'Nesting too deep, stopping recursion'

@@ -2,6 +2,7 @@ module raytracer
 use types
 use util
 use constants
+use blas
 implicit none
 
 real(kind=DP),parameter :: rk45_c(6) = &
@@ -55,12 +56,10 @@ function dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
   ! Find the stix parameters
   call stix_parameters(w, qs, Ns, ms, nus, sqrt(dot_product(B0,B0)), S,D,P,R,L)
 
-
   ! Old code
   A = S*sin2phi + P*cos2phi
   B = R*L*sin2phi + P*S*(1.0_DP+cos2phi)
   
-
   ! If we're sufficiently above the plasma frequency, then treat it 
   ! as free space
   if(w>100.0_DP*sqrt((maxval(Ns)*maxval(abs(qs))**2))/(minval(ms)*EPS0)) then
@@ -278,10 +277,9 @@ end function dispersion_relation_dFdx
 ! (kg), and collision frequency as column vectors, one per species.  B0 
 ! is the vector background magnetic field.
 !
-function raytracer_evalrhs(t, args, root, del, funcPlasmaParams, &
+function raytracer_evalrhs(t, args, del, funcPlasmaParams, &
                            funcPlasmaParamsData)
   real(kind=DP) :: args(7), t, del
-  integer :: root
   interface 
      subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
        use types
@@ -352,6 +350,59 @@ function raytracer_stopconditions(pos, k, w, vprel, vgrel, dt, nstep, &
   end if
 end function raytracer_stopconditions
 
+subroutine form_dispersion_matrix(M, n2, phi, S, D, P)
+  complex(kind=DP),intent(out) :: M(3,3)
+  real(kind=DP),intent(in) :: S,D,P
+  real(kind=DP),intent(in) :: n2
+  real(kind=DP),intent(in) :: phi
+
+  M(1,1) = cmplx(S-n2*cos(phi)**2, 0)
+  M(1,2) = cmplx(0, -D)
+  M(1,3) = cmplx(n2*cos(phi)*sin(phi), 0)
+  M(2,1) = cmplx(0, D)
+  M(2,2) = cmplx(S-n2, 0)
+  M(2,3) = cmplx(0,0)
+  M(3,1) = cmplx(n2*cos(phi)*sin(phi), 0)
+  M(3,2) = cmplx(0,0)
+  M(3,3) = cmplx(P-n2*sin(phi)**2, 0)
+
+end subroutine form_dispersion_matrix
+
+function is_right_handed(n2, phi, S, D, P)
+  real(kind=DP),intent(in) :: S,D,P
+  real(kind=DP),intent(in) :: n2
+  real(kind=DP),intent(in) :: phi
+  logical :: is_right_handed
+  
+  complex(kind=DP) :: M(3,3), U(3,3), VT(3,3)
+  real(kind=DP) :: svd(3)
+  complex(kind=DP) :: E(3)
+  real(kind=DP) :: E0(3), E90(3)
+  real(kind=DP) :: angle
+
+  call form_dispersion_matrix(M, n2, phi, S, D, P)
+  call csvd(M, U, svd, VT)
+  E = VT(3,:)
+
+  E0 = real(E*cmplx(1,0,kind=DP))
+  E90 = real(E*cmplx(0,1,kind=DP))
+  angle = (atan2(E90(2),E90(1)) - atan2(E0(2),E0(1)))
+  if( angle > PI ) then
+     angle = angle - 2.0_DP*PI
+  end if
+  if( angle < -PI ) then
+     angle = angle +2.0_DP*PI 
+  end if
+
+  if( angle < 0.0_DP ) then
+     is_right_handed = .false.
+  else
+     is_right_handed = .true.
+  end if
+
+end function is_right_handed
+
+
 subroutine solve_dispersion_relation(k, w, x, k1, k2, &
                                      funcPlasmaParams, funcPlasmaParamsData)
 ! Solve the dispersion relation and return k.  Inputs:
@@ -386,6 +437,8 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
   complex(kind=DP) :: discriminant, n1, n2, nsquared1, nsquared2
   real(kind=DP) :: cos2phi, sin2phi, B0mag
   real(kind=DP) :: S,D,P,R,L, A,B
+  real(kind=DP) :: phi
+  logical :: blah
 
   call funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
   
@@ -394,6 +447,7 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
   cos2phi = (dot_product(k, B0)*dot_product(k, B0)) / &
             (dot_product(k, k)*dot_product(B0, B0))
   sin2phi = 1.0_DP - cos2phi
+  phi = acos(sqrt(cos2phi))
 
   ! Magnitude of B0
   B0mag = sqrt(dot_product(B0,B0))
@@ -406,25 +460,29 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
   discriminant = B**2-4.0_DP*A*R*L*P
   nsquared1 = (B+sqrt(discriminant))/(2.0_DP*A)
   nsquared2 = (B-sqrt(discriminant))/(2.0_DP*A)
-  
+
   n1 = sqrt(nsquared1)
   n2 = sqrt(nsquared2)
   
-  ! Sort by magnitude of real part instead of using the +- ordering.
-  ! This should do a better job at keeping a continuous locus unless
-  ! there is a coalescence.  Is there a better way to do this?
-  if( abs(real(n1)) > abs(real(n2)) ) then
-     k2 = w*n1/C
+  ! default case
+  k1 = w*n1/C
+  k2 = w*n2/C
+
+  ! Sort modes based on handedness, but only consider handedness of propagating modes
+  ! Convention: k2 is the right-handed mode, k1 is the left
+  if( real(n1) > 0.0_DP .and. is_right_handed(real(nsquared1), phi, S, D, P) ) then
      k1 = w*n2/C
-  else
+     k2 = w*n1/C
+  end if
+  if( real(n1) > 0.0_DP .and. is_right_handed(real(nsquared2), phi, S, D, P) ) then
      k1 = w*n1/C
      k2 = w*n2/C
   end if
+
 end subroutine solve_dispersion_relation
 
-function rk4(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData)
+function rk4(t, x, del, dt, funcPlasmaParams, funcPlasmaParamsData)
   real(kind=DP) :: x(:), t, dt, del
-  integer :: root
   interface 
      subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
        use types
@@ -441,24 +499,23 @@ function rk4(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData)
 
   ! Integrate in time using rk4
   ! x' = f(t,x)
-  k1 = dt*raytracer_evalrhs(t,x, root, del, &
+  k1 = dt*raytracer_evalrhs(t,x, del, &
                             funcPlasmaParams, funcPlasmaParamsData)
-  k2 = dt*raytracer_evalrhs(t+1.0_DP/2.0_DP*dt, x+1.0_DP/2.0_DP*k1, root, del, &
+  k2 = dt*raytracer_evalrhs(t+1.0_DP/2.0_DP*dt, x+1.0_DP/2.0_DP*k1, del, &
                             funcPlasmaParams, funcPlasmaParamsData)
-  k3 = dt*raytracer_evalrhs(t+1.0_DP/2.0_DP*dt, x+1.0_DP/2.0_DP*k2, root, del, &
+  k3 = dt*raytracer_evalrhs(t+1.0_DP/2.0_DP*dt, x+1.0_DP/2.0_DP*k2, del, &
                             funcPlasmaParams, funcPlasmaParamsData)
-  k4 = dt*raytracer_evalrhs(t+dt,x+k3, root, del, &
+  k4 = dt*raytracer_evalrhs(t+dt,x+k3, del, &
                             funcPlasmaParams, funcPlasmaParamsData)
   rk4 = x + 1.0_DP/6.0_DP*(k1+2.0_DP*k2+2.0_DP*k3+k4)
 
 end function rk4
 
-subroutine rk45(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData, &
+subroutine rk45(t, x, del, dt, funcPlasmaParams, funcPlasmaParamsData, &
                 out4, out5)
   real(kind=DP),intent(in) :: x(:), t, dt, del
   real(kind=DP),intent(out) :: out4(size(x)), out5(size(x))
   complex(kind=DP) :: k1mag, k2mag, k(3)
-  integer :: root
   interface 
      subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
        use types
@@ -477,35 +534,35 @@ subroutine rk45(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData, &
   ! Integrate in time using rk45 (embedded 4,5 scheme)
   ! x' = f(t,x)
   tmpx = x
-  k1 = dt*raytracer_evalrhs(t,tmpx, root, del, &
+  k1 = dt*raytracer_evalrhs(t,tmpx, del, &
                             funcPlasmaParams, funcPlasmaParamsData)
   tmpx = x + ( rk45_a2(1)*k1 )
   k2 = dt*raytracer_evalrhs(&
          t + rk45_c(2)*dt, &
          tmpx, &
-         root, del, funcPlasmaParams, funcPlasmaParamsData)
+         del, funcPlasmaParams, funcPlasmaParamsData)
   tmpx = x + ( rk45_a3(1)*k1 + rk45_a3(2)*k2 )
   k3 = dt*raytracer_evalrhs(&
          t + rk45_c(3)*dt, &
          tmpx, &
-         root, del, funcPlasmaParams, funcPlasmaParamsData)
+         del, funcPlasmaParams, funcPlasmaParamsData)
   tmpx = x + ( rk45_a4(1)*k1 + rk45_a4(2)*k2 + rk45_a4(3)*k3 )
   k4 = dt*raytracer_evalrhs(&
          t + rk45_c(4)*dt, &
          tmpx, &
-         root, del, funcPlasmaParams, funcPlasmaParamsData)
+         del, funcPlasmaParams, funcPlasmaParamsData)
   tmpx = x + ( rk45_a5(1)*k1 + rk45_a5(2)*k2 + rk45_a5(3)*k3 + &
                rk45_a5(4)*k4 )
   k5 = dt*raytracer_evalrhs(&
          t + rk45_c(5)*dt, &
          tmpx, &
-         root, del, funcPlasmaParams, funcPlasmaParamsData)
+         del, funcPlasmaParams, funcPlasmaParamsData)
   tmpx = x + ( rk45_a6(1)*k1 + rk45_a6(2)*k2 + rk45_a6(3)*k3 + &
                rk45_a6(4)*k4 + rk45_a6(5)*k5 )
   k6 = dt*raytracer_evalrhs(&
          t + rk45_c(6)*dt, &
          tmpx, &
-         root, del, funcPlasmaParams, funcPlasmaParamsData)
+         del, funcPlasmaParams, funcPlasmaParamsData)
 
   out4 = x + &
        (rk45_b4(1)*k1 + rk45_b4(2)*k2 + rk45_b4(3)*k3 + &
@@ -529,7 +586,8 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
        B0(:,:), qs(:,:), ms(:,:), Ns(:,:), nus(:,:)
   real(kind=DP), allocatable :: tmpsize2(:,:), tmpsize1(:)
   integer, intent(out) :: stopcond
-  real(kind=DP), intent(in) :: pos0(3), dir0(3), w0, dt0, dtmax, maxerr, tmax
+  real(kind=DP), intent(in) :: pos0(3), w0, dt0, dtmax, maxerr, tmax
+  real(kind=DP), intent(inout) :: dir0(3)
   integer, intent(in) :: root, fixedstep, maxsteps
   real(kind=DP), intent(in) :: del, minalt
   interface 
@@ -561,6 +619,13 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   integer :: lastrefinedown, nstep
   complex(kind=DP) :: k1mag, k2mag, k0mag, k(3), k0(3)
   real(kind=DP) :: dtincr, err, cur_pos(3), w
+
+  ! TESTING
+  call funcPlasmaParams(pos0, qstmp, Nstmp, mstmp, nustmp, B0tmp, &
+                        funcPlasmaParamsData)
+  dir0 = -B0tmp/sqrt(dot_product(B0tmp,B0tmp))
+  print *, 'dir0=', dir0
+  
 
   ! Find k at the given direction
   call solve_dispersion_relation( dir0, w0, pos0, k1mag, k2mag, &
@@ -632,7 +697,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      !print *, 't=', t
      if( fixedstep == 0 ) then
         ! Adaptive timesteps - use embedded rk45 scheme
-        call rk45( t, x, root, del, dt, &
+        call rk45( t, x, del, dt, &
              funcPlasmaParams, funcPlasmaParamsData, est1, est2 )
 
         dtincr = dt
@@ -667,7 +732,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
         end if
      else
         ! Fixed timesteps
-        est2 = rk4(t, x, root, del, dt, funcPlasmaParams, funcPlasmaParamsData)
+        est2 = rk4(t, x, del, dt, funcPlasmaParams, funcPlasmaParamsData)
         dtincr = dt
      end if
 

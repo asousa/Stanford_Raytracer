@@ -89,6 +89,8 @@ program gcpm_dens_model_buildgrid_random
      stop
   end if
 
+  adaptive_nmax = 100000
+
   call getopt_named( 'minx', buffer, foundopt )
   if( foundopt == 1 ) then
      read(buffer,*) minx
@@ -314,6 +316,7 @@ program gcpm_dens_model_buildgrid_random
 
 
 
+  
   if( adaptive_nmax > 0 ) then
      print *, 'Now doing adaptive sampling'
      limit_min = (/ minx, miny, minz /)
