@@ -112,8 +112,8 @@ d\else
 precision) \\
 
 \section{Sample driver script}
-The bin/ directory contains a Matlab script ``testrun.m''.  This sets
-up a few sample raytracer runs.  It also illustrates the use and
+The bin/ directory contains a Matlab script ``test\_vlf\_run.m''.  This
+sets up a few sample raytracer runs.  It also illustrates the use and
 parsing of the basic tools to extract model parameters and plot them.
 Basic operation:
 
@@ -328,6 +328,11 @@ Basic operation:
       and suffer from fewer artifacts.
     \end{itemize}
 \end{itemize}
+
+\section{Computing damping rate}
+The hot damping rate is computed entirely as a postprocessing step
+using matlab scripts.  A sample damping calculation and some plots are
+available in the script ``test\_vlf\_damping.m''. 
 
 \section{Building}
 
