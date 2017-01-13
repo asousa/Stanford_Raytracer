@@ -1,0 +1,286 @@
+
+
+ jmag(=0/1,geog/geom),lati/deg,long/deg
+0,40,0
+ year(yyyy),mmdd(or -ddd),iut(=0/1,LT/UT),hour
+2000,715,0,12
+ height/km
+ (enter  0 for list of peak heights and densities)
+ (enter -1 for plasma frequencies, B0, M3000, valley, width and depth,)
+ (enter -2 for 6 parameters of your choice)
+ (enter -3 for D-region models at 60,65,..,110 km)
+300
+ upper height [km] for TEC integration (0 for no TEC)
+0 
+ variable? (1/2/../8 for height/lat/long/year/month/day/day of year/hour)
+1
+ begin, end, and stepsize for the selected variable
+100,1000,50
+ Options: t(rue) or f(alse)
+ Standard: t,t,t,t,f,f,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,f,t,t,t,t,t,f,f
+ Enter 0 to use standard or 1 to enter your own
+0
+  
+  
+  
+*** IRI parameters are being calculated ***
+Ne: NeQuick for Topside
+Ne, foF2: URSI model is used.
+Ne, foF1: probability function used.
+Ne, D: IRI-90
+Ne, foF2: storm model included
+Ion Com.: DS-95 & TTS-03
+Te: Interkosmos model
+ Enter 0 to exit or 1 to generate another profile?
+1
+ jmag(=0/1,geog/geom),lati/deg,long/deg
+1,0,180.5
+ year(yyyy),mmdd(or -ddd),iut(=0/1,LT/UT),hour
+1960,-214,1,14.3
+ height/km
+ (enter  0 for list of peak heights and densities)
+ (enter -1 for plasma frequencies, B0, M3000, valley, width and depth,)
+ (enter -2 for 6 parameters of your choice)
+ (enter -3 for D-region models at 60,65,..,110 km)
+0
+ upper height [km] for TEC integration (0 for no TEC)
+1500
+ variable? (1/2/../8 for height/lat/long/year/month/day/day of year/hour)
+8
+ begin, end, and stepsize for the selected variable
+0,24,1
+ Options: t(rue) or f(alse)
+ Standard: t,t,t,t,f,f,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,f,t,t,t,t,t,f,f
+ Enter 0 to use standard or 1 to enter your own
+0
+  
+  
+  
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=167.2 AND HEF=117.8
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=175.7 AND HEF=115.6
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=190.8 AND HEF=120.5
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=193.1 AND HEF=128.1
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=199.2 AND HEF=139.1
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=206.0 AND HEF=149.2
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=196.8 AND HEF=158.8
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=192.5 AND HEF=156.8
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=187.2 AND HEF=152.1
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=179.6 AND HEF=143.4
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=170.9 AND HEF=132.2
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=165.1 AND HEF=123.0
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=167.2 AND HEF=117.8
+ Enter 0 to exit or 1 to generate another profile?
+1
+ jmag(=0/1,geog/geom),lati/deg,long/deg
+1,0,0
+ year(yyyy),mmdd(or -ddd),iut(=0/1,LT/UT),hour
+2000,112,0,0
+ height/km
+ (enter  0 for list of peak heights and densities)
+ (enter -1 for plasma frequencies, B0, M3000, valley, width and depth,)
+ (enter -2 for 6 parameters of your choice)
+ (enter -3 for D-region models at 60,65,..,110 km)
+-2
+ upper height [km] for TEC integration (0 for no TEC)
+0
+ variable? (1/2/../8 for height/lat/long/year/month/day/day of year/hour)
+8
+ begin, end, and stepsize for the selected variable
+0,24,1
+ Options: t(rue) or f(alse)
+ Standard: t,t,t,t,f,f,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,f,t,t,t,t,t,f,f
+ Enter 0 to use standard or 1 to enter your own
+0
+ 6 Parameters of your choice (number:1-48)
+ NmF2  hmF2  NmF1  hmF1  NmE   hmE   NmD   hmD   h05   B0    
+ NVmin hVtop Tpeak hTpek T300  T400  T600  T1400 T3000 T120  
+ Ti450 hTeTi sza   sndec dip   dipla modip dela  Srise Sset  
+ seasn nseas Rz12  cov   B1    M3000 TEC   TECtp IG12  F1prb 
+ F107d C1    daynr vdrft foF2r F1noL F1+L  sp_F  
+ or 0,0,0,0,0,0 for default:
+       spread-F probability [48]
+       equatorial vertical ion drift [44]
+       foF2_storm/foF2_quiet [45]
+       F1 probability without L-condition [46]
+       solar zenith angle [23]
+       modified dip latitude [27]
+0,0,0,0,0,0
+  
+  
+  
+*** IRI parameters are being calculated ***
+Ne: NeQuick for Topside
+Ne, foF2: URSI model is used.
+Ne, foF1: probability function used.
+Ne, D: IRI-90
+Ne, foF2: storm model included
+Ion Com.: DS-95 & TTS-03
+Te: Interkosmos model
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=197.4 AND HEF=157.8
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=191.6 AND HEF=154.3
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=184.5 AND HEF=147.2
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=176.5 AND HEF=136.5
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=170.2 AND HEF=126.0
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=170.0 AND HEF=119.4
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=175.7 AND HEF=116.2
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=196.4 AND HEF=123.7
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=204.8 AND HEF=133.3
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=213.1 AND HEF=144.5
+ Enter 0 to exit or 1 to generate another profile?
+1
+ jmag(=0/1,geog/geom),lati/deg,long/deg
+0,50,180
+ year(yyyy),mmdd(or -ddd),iut(=0/1,LT/UT),hour
+2009,225,0,12
+ height/km
+ (enter  0 for list of peak heights and densities)
+ (enter -1 for plasma frequencies, B0, M3000, valley, width and depth,)
+ (enter -2 for 6 parameters of your choice)
+ (enter -3 for D-region models at 60,65,..,110 km)
+-1
+ upper height [km] for TEC integration (0 for no TEC)
+0
+ variable? (1/2/../8 for height/lat/long/year/month/day/day of year/hour)
+5
+ begin, end, and stepsize for the selected variable
+1,12,1
+ Options: t(rue) or f(alse)
+ Standard: t,t,t,t,f,f,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,f,t,t,t,t,t,f,f
+ Enter 0 to use standard or 1 to enter your own
+0
+  
+  
+  
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=159.4 AND HEF=126.3
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ *NE* HST IS NOT EVALUATED BY THE FUNCTION XE3
+      CORR.: LIN. APP. BETWEEN HZ=159.1 AND HEF=126.3
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Date is outside range of F10.7D indices file.
+ Date is outside range of Ap indices file. STORM model is turned off.
+ Enter 0 to exit or 1 to generate another profile?
+1
+ jmag(=0/1,geog/geom),lati/deg,long/deg
+0,50,0
+ year(yyyy),mmdd(or -ddd),iut(=0/1,LT/UT),hour
+2000,715,0,12
+ height/km
+ (enter  0 for list of peak heights and densities)
+ (enter -1 for plasma frequencies, B0, M3000, valley, width and depth,)
+ (enter -2 for 6 parameters of your choice)
+ (enter -3 for D-region models at 60,65,..,110 km)
+300
+ upper height [km] for TEC integration (0 for no TEC)
+0
+ variable? (1/2/../8 for height/lat/long/year/month/day/day of year/hour)
+1
+ begin, end, and stepsize for the selected variable
+100,1000,50
+ Options: t(rue) or f(alse)
+ Standard: t,t,t,t,f,f,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,t,f,t,t,t,t,t,f,f
+ Enter 0 to use standard or 1 to enter your own
+1
+ Compute Ne, T, Ni? (enter: t,t,t  if you want all)
+t,t,t
+ LAY version: t=standard ver., f=LAY version. {standard:t}
+t
+ Ne Topside: t=IRI-2001, f=new options {f}
+f
+ Ne Topside: t=IRI01_corrt, f=NeQuick {f}
+f
+ Ne Topside: t=F10.7<188, f=unlimited {t}
+t
+ foF2 model: t=CCIR, f=URSI-88 {f}
+f
+ foF2: t=with storm model, f=without {t}
+t
+ F2 peak density or foF2: t=model, f=user input {t}
+t
+ F2 peak height or M3000F2: t=model, f=user input {t}
+t
+ Bottomside thickness B0: t=Table-option, f=Gulyaeva {t}.
+t
+ F1 peak density or foF1: t=model, f=user input {t}
+t
+ F1: t=with probability model, f=without   {t}
+t
+ F1: t=standard probability, f=with L condition {t}
+t
+ E peak density or foE: t=model, f=user input {t}
+t
+ E peak height: t=model, f=user input {t}
+t
+ D: t=IRI-95, f= FPT-00 {t}
+t
+ Te(Ne) model: t=not used, f=correlation is used. {t}
+t
+ Te: t=AEROS/ISIS model, f=InterKosmos model {f}
+t
+ Ion comp. model: t=DS78/DY85, f=DS95/TTS05 {f}
+t
+ Ni: t=ion composition in %, f=ion densitiesin cm-3 {t}
+t
+ Equat. Vert. Ion Drift: t=computed, f=not computed {t}
+t
+ Spread-F probability: t=computed, f=not computed {t}
+t
+ Sunspot index: t=from file, f=user input.  {t}
+t
+ Ionospheric index: t=from file, f=user input. {t}
+t
+ F10.7D Index: t=from file, f=user input {t}
+t
+ UT/LT computation: t=no date change, f=ut_lt subroutine {t}
+t
+ Message output unit: t=(UNIT=6), f=(UNIT=12). {t}
+t
+  
+  
+  
+ Enter 0 to exit or 1 to generate another profile?
+0
+/home/bilitza/IRI_data/iri/iri_dev% 

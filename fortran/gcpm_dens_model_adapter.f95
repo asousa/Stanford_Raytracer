@@ -147,10 +147,12 @@ contains
     !			(3) = total helium density in 1/cm^3
     !			(4) = total oxygen density in 1/cm^3
     !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-    !print *, 'itime=', datap%p%itime, 'r=', r, 'amlt=', amlt, 'alatr=', alatr,'akp=',datap%p%akp, 'outn=',outn
+    ! print *, 'PRE: itime=', datap%p%itime, 'r=', r, 'amlt=', amlt, 'alatr=', alatr,'akp=',datap%p%akp, 'outn=',outn
     call gcpm_v24(datap%p%itime,real(r),real(amlt),&
          real(alatr),real(datap%p%akp),outn)
-    
+    ! print *, 'POST: itime=', datap%p%itime, 'r=', r, 'amlt=', amlt, 'alatr=', alatr,'akp=',datap%p%akp, 'outn=',outn
+
+    ! print *, 'we did it'
     ce = dble(outn(1))
     ch = dble(outn(2))
     che = dble(outn(3))

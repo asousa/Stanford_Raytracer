@@ -387,11 +387,11 @@ function is_right_handed(n2, phi, S, D, P)
   E0 = real(E*cmplx(1,0,kind=DP))
   E90 = real(E*cmplx(0,1,kind=DP))
   angle = (atan2(E90(2),E90(1)) - atan2(E0(2),E0(1)))
+
   if( angle > PI ) then
      angle = angle - 2.0_DP*PI
-  end if
-  if( angle < -PI ) then
-     angle = angle +2.0_DP*PI 
+  else if( angle < -PI ) then
+     angle = angle + 2.0_DP*PI 
   end if
 
   if( angle < 0.0_DP ) then
@@ -455,6 +455,7 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
   ! Find the stix parameters
   call stix_parameters(w, qs, Ns, ms, nus, B0mag, S,D,P,R,L)
   
+  ! (Stix, "Waves In Plasmas", page 9)
   A = S*sin2phi+P*cos2phi
   B = R*L*sin2phi+P*S*(1.0_DP+cos2phi)
   discriminant = B**2-4.0_DP*A*R*L*P
@@ -470,13 +471,15 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
 
   ! Sort modes based on handedness, but only consider handedness of propagating modes
   ! Convention: k2 is the right-handed mode, k1 is the left
+  ! print *, 'n1: ', n1
+  ! print *, 'n2: ', n2
+
   if( real(n1) > 0.0_DP .and. is_right_handed(real(nsquared1), phi, S, D, P) ) then
      k1 = w*n2/C
      k2 = w*n1/C
-  end if
-  if( real(n1) > 0.0_DP .and. is_right_handed(real(nsquared2), phi, S, D, P) ) then
-     k1 = w*n1/C
-     k2 = w*n2/C
+  ! else if( real(n2) > 0.0_DP .and. is_right_handed(real(nsquared2), phi, S, D, P) ) then
+  !    k1 = w*n1/C
+  !    k2 = w*n2/C
   end if
 
 end subroutine solve_dispersion_relation
@@ -516,6 +519,8 @@ subroutine rk45(t, x, del, dt, funcPlasmaParams, funcPlasmaParamsData, &
   real(kind=DP),intent(in) :: x(:), t, dt, del
   real(kind=DP),intent(out) :: out4(size(x)), out5(size(x))
   complex(kind=DP) :: k1mag, k2mag, k(3)
+
+
   interface 
      subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
        use types
@@ -590,6 +595,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   real(kind=DP), intent(inout) :: dir0(3)
   integer, intent(in) :: root, fixedstep, maxsteps
   real(kind=DP), intent(in) :: del, minalt
+
   interface 
      subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
        use types
@@ -619,6 +625,9 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   integer :: lastrefinedown, nstep
   complex(kind=DP) :: k1mag, k2mag, k0mag, k(3), k0(3)
   real(kind=DP) :: dtincr, err, cur_pos(3), w
+  real(kind=DP) :: er1, er2
+
+  real(kind=DP) :: kmag, kmag_prev, k_err
 
   ! Find k at the given direction
   call solve_dispersion_relation( dir0, w0, pos0, k1mag, k2mag, &
@@ -703,6 +712,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
 
         ! Error term is the max of the relative errors in dfdk AND k
         ! This provides better error control when magnetospherically reflecting
+        ! (RKF45 solution -- aps, 12.2016)
         err = max( &
              sum(abs(est1(4:6)-est2(4:6))) / sum(abs(est2(4:6))), &
              sum(abs(dfdk_est1-dfdk_est2))/sum(abs(dfdk_est2)))
@@ -739,10 +749,31 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      if( root == 1 ) then
         ! Preserve direction
         k = k1mag*(k/sqrt(dot_product(k,k)))
+        kmag = k1mag
      else
         ! Preserve direction
         k = k2mag*(k/sqrt(dot_product(k,k)))
+        kmag = k2mag
      end if
+
+
+     ! if (t > 0) then
+     !    k_err = abs((kmag - kmag_prev)/kmag)
+     !    kmag_prev = kmag
+     !    print *,'t: ',t,' dk: ',k_err
+     !  else
+     !    k_err = 0.0_DP
+     ! end if
+
+     ! ! refine timestep if error in k is above threshold
+     ! if( k_err > 0.5 ) then
+     !    if( fixedstep == 0 ) then
+     !       print *, 'Refine down: dk over threshold'
+     !       dt=dt/2.0_DP
+     !       lastrefinedown = 1
+     !       cycle        
+     !    end if
+     ! end if
 
      ! refine timestep if outside resonance cone
      if( dot_product(imag(k),imag(k)) > 0.0_DP ) then
