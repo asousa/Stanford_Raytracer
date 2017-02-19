@@ -448,6 +448,16 @@ program dumpmodel
      if( foundopt == 1 ) then
         read (buffer,*) gcpm_state_data%W6
      end if
+     ! Fixed MLT:
+     call getopt_named( 'MLT', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) gcpm_state_data%MLT
+     end if
+     call getopt_named( 'fixed_MLT', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        gcpm_state_data%fixed_MLT = floor(tmpinput)
+     end if
 
      ! Marshall our data to the callback
      ! associate a pointer to the state data provided by the user
@@ -473,6 +483,8 @@ program dumpmodel
      print *, '   tsyganenko_W4:    ', gcpm_state_data%W4
      print *, '   tsyganenko_W5:    ', gcpm_state_data%W5
      print *, '   tsyganenko_W6:    ', gcpm_state_data%W6
+     print *, '   fixed_MLT:        ', gcpm_state_data%fixed_MLT
+     print *, '   MLT:              ', gcpm_state_data%MLT
      flush(OUTPUT_UNIT)
 
      ! Allocate space for the data
@@ -484,7 +496,7 @@ program dumpmodel
      do k=1,nz
         do j=1,ny
            do i=1,nx
-              print *, 'i=',i, '/', nx, 'j=',j, '/', ny, 'k=',k, '/', nz
+              ! print *, 'i=',i, '/', nx, 'j=',j, '/', ny, 'k=',k, '/', nz
               flush(OUTPUT_UNIT)
               call fgcpm((/x(i),y(j),z(k)/), qs, Ns, ms, nus, B0, data)
               f(:,i,j,k) = (/qs, Ns, Ms, nus, B0/)

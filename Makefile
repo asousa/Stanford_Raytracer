@@ -1,10 +1,10 @@
 SUBDIRS = xform xform_double iri2007 tsyganenko tricubic-for gcpm fortran
-export G95 = gfortran
+export G95 = g95
 #export G95 = gfortran
 
 
 ifeq "${G95}" "g95"
-export FLAGS = -pg -Wall -fstatic -ffixed-line-length-132 -ffree-line-length-huge -fno-second-underscore
+export FLAGS = -pg -Wall -fstatic -ffixed-line-length-132 -ffree-line-length-huge
 endif
 ifeq "${G95}" "gfortran"
 export FLAGS = -pg -Wall -fno-automatic -ffixed-line-length-132 -ffree-line-length-132 -fd-lines-as-comments -finit-local-zero 

@@ -1,6 +1,6 @@
 .SUFFIXES : .f95 .mod
 
-FLAGS += -static-libgfortran
+# FLAGS += -static-libgfortran
 
 
 ifeq "$(OS)" "Windows_NT"
@@ -8,9 +8,9 @@ RM = del
 EXT = .exe
 # necessary to keep it from linking to a silly dll
 FLAGS = -static-libgcc
-ifeq "$(G95)" "gfortran"
-FLAGS += -static-libgfortran
-endif
+# ifeq "$(G95)" "gfortran"
+# FLAGS += -static-libgfortran
+# endif
 else
 RM = rm -f
 EXT = 

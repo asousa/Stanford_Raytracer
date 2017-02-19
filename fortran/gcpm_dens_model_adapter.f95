@@ -24,6 +24,11 @@ module gcpm_dens_model_adapter
      integer :: use_tsyganenko
      ! Whether to use (1) IGRF or not use (0) and use dipole instead
      integer :: use_igrf
+
+     ! Whether to constrain ray tracing to a constant MLT (1) or not (0)
+     integer :: fixed_MLT
+     real(kind=DP) :: MLT
+     
   end type gcpmStateData
   ! Pointer container type.  This is the data that is actually marshalled.
   type :: gcpmStateDataP 
@@ -117,7 +122,13 @@ contains
     ! convert to spherical coordinates
     p_sm = cartesian_to_spherical(x)
     ! Convert magnetic r,theta,phi to SM local time in hours
-    amlt = mod(24.0_DP*p_sm(2)/(2.0_DP*pi)+12.0_DP,24.0_DP)
+
+    if( datap%p%fixed_MLT == 1 ) then
+      amlt = datap%p%MLT
+    else
+      amlt = mod(24.0_DP*p_sm(2)/(2.0_DP*pi)+12.0_DP,24.0_DP)
+    end if
+    ! amlt = 0.0_DP
     ! compute r, the geocentric distance in RE
     r = p_sm(1)/R_E
     ! Convert magnetic r,theta,phi to SM latitude in radians

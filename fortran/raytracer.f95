@@ -340,6 +340,7 @@ function raytracer_stopconditions(pos, k, w, vprel, vgrel, dt, nstep, &
     print *, '  Stopping integration.  Nonsensical group velocity = ', &
          sqrt(dot_product(vgrel,vgrel))
   elseif( dt < 1e-12 ) then
+  ! elseif( dt < 1e-10 ) then
     ! dt too small
     print *, '  Stopping integration.  dt too small.'
     raytracer_stopconditions = 5
@@ -462,6 +463,15 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
   nsquared1 = (B+sqrt(discriminant))/(2.0_DP*A)
   nsquared2 = (B-sqrt(discriminant))/(2.0_DP*A)
 
+  ! print *, 'Bomag: ', B0mag
+  ! print *, 'cos2phi: ', cos2phi
+  ! print *, 'kmag init: ', dot_product(k, k)
+  
+
+  ! print *, 'A: ', A
+  ! print *, 'B: ', B
+  ! print *, 'nsqared1: ', nsquared1
+  ! print *, 'nsquared2 ', nsquared2
   n1 = sqrt(nsquared1)
   n2 = sqrt(nsquared2)
   
@@ -481,6 +491,13 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
   !    k1 = w*n1/C
   !    k2 = w*n2/C
   end if
+
+  ! if ( (real(n1) == 0.0_DP) .and. (real(n2) == 0.0_DP) ) then
+  ! ! Both modes are evanescent. Return zero for k vectors instead of NaNs.
+  !   print *, 'Evanescent mode'
+  !   k1 = 0.0_DP
+  !   k2 = 0.0_DP
+  ! end if
 
 end subroutine solve_dispersion_relation
 
@@ -628,6 +645,8 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   real(kind=DP) :: er1, er2
 
   real(kind=DP) :: kmag, kmag_prev, k_err
+  real(kind=DP) :: cur_dir(3), prev_dir(3)
+  real(kind=DP) :: angle_error, n_angle_refines
 
   ! Find k at the given direction
   call solve_dispersion_relation( dir0, w0, pos0, k1mag, k2mag, &
@@ -664,9 +683,21 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   allocate(n(3,1))
   n(:,1) = x(4:6)*C/w0
   allocate(vprel(3,1))
-  vprel(:,1) = n(:,1)/dot_product(n(:,1),n(:,1))
+  ! vprel(:,1) = n(:,1)/dot_product(n(:,1),n(:,1))
   allocate(vgrel(3,1))
-  vgrel(:,1) = -(dfdk/dfdw)/C
+  ! vgrel(:,1) = -(dfdk/dfdw)/C
+
+  ! If the ray starts off in a non-propagating mode,
+  ! check the magnitude of n and avoid writing NaNs
+  ! in the file. Stopconds will force an exit on the first
+  ! timestep anyway.
+  if (dot_product(n(:,1), n(:,1)) > 0) then
+    vprel(:,1) = n(:,1)/dot_product(n(:,1),n(:,1))
+    vgrel(:,1) = -(dfdk/dfdw)/C
+  else 
+    vprel(:,1) = 0.0_DP
+    vgrel(:,1) = 0.0_DP
+  end if
   allocate(B0(3,1))
   B0(:,1) = B0tmp
   allocate(qs(size(qstmp),1))
@@ -679,6 +710,8 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   nus(:,1) = nustmp
   stopcond = 0
 
+  print *,'Starting position: ',x(1:3)
+  print *,'Starting k: ',x(4:6)
 
   nstep = 1
   do
@@ -718,12 +751,17 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
              sum(abs(dfdk_est1-dfdk_est2))/sum(abs(dfdk_est2)))
 
         if( err > maxerr ) then
+          ! if ( dt > 1e-8) then
            ! retry
+           ! (Constraining to a minimum timestep... 2.2017)
            !print *, 'Refine down'
            dt=0.8_DP*dt
            ! Prevent refinement loops
            lastrefinedown = 1
            cycle
+          ! else
+          !   print *, "dt at minimum"
+          ! end if
         end if
         if( lastrefinedown==0 .and. &
            err < maxerr/10.0_DP .and. &
@@ -756,7 +794,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
         kmag = k2mag
      end if
 
-
+     ! ! refine timestep if magnitude of K-vector changed too much 
      ! if (t > 0) then
      !    k_err = abs((kmag - kmag_prev)/kmag)
      !    kmag_prev = kmag
@@ -765,8 +803,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      !    k_err = 0.0_DP
      ! end if
 
-     ! ! refine timestep if error in k is above threshold
-     ! if( k_err > 0.5 ) then
+     ! if( k_err > 0.1 ) then
      !    if( fixedstep == 0 ) then
      !       print *, 'Refine down: dk over threshold'
      !       dt=dt/2.0_DP
@@ -774,6 +811,38 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      !       cycle        
      !    end if
      ! end if
+
+!------------------------------------------
+
+    !  ! refine timestep if direction of propagation vector changed too much
+    !  if (nstep > 1) then
+    !   cur_dir = cur_pos - pos(:,nstep)
+    !   prev_dir= pos(:, nstep) - pos(:,nstep-1)
+    !   angle_error = (180.0_DP/3.14159_DP)*acos(dot_product(cur_dir, prev_dir)/ &
+    !              sqrt(dot_product(cur_dir, cur_dir))/ &
+    !              sqrt(dot_product(prev_dir, prev_dir)))
+      
+    ! else
+    !   n_angle_refines = 0
+    !   angle_error = 0.0_DP
+    ! end if
+    ! ! print *,'t: ',t,' dTheta: ',angle_error
+
+    ! if (angle_error > 10) then
+    !   if (n_angle_refines < 5) then
+    !     print *, 'outside angle bounds - refine down'
+    !     dt = dt/2.0_DP
+    !     n_angle_refines = n_angle_refines + 1
+    !     lastrefinedown = 1
+    !     cycle
+    !   else
+    !     print *, 'Maximum refine attempts -- continuing anyway'
+    !     n_angle_refines = 0
+    !     continue
+    !   end if
+    ! end if
+
+!-----------------------------------------
 
      ! refine timestep if outside resonance cone
      if( dot_product(imag(k),imag(k)) > 0.0_DP ) then
