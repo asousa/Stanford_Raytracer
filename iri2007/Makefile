@@ -1,25 +1,27 @@
 .SUFFIXES : .f95 .mod .for
 
-ifeq "$(OS)" "Windows_NT"
-RM = del
-EXT = .exe
-else
 RM = rm -f
 EXT = 
-endif
 
 sources = \
 	cira.for \
 	igrf.for \
+	igrf12.for \
 	iridreg.for \
 	irifun.for \
 	irisub.for \
-	iritec.for \
-	iritest.for \
-	igrf12.for
+	iritec.for
 
-# FLAGS = -g
-# #-O3 
+# FLAGS = -g -O3 -Wall
+
+# fcompiler=g95
+# # Use the -fstatic option with g95.  With gfortran, use -fno-automatic
+# ifeq "$(fcompiler)" "g95"
+# FLAGS += -fstatic -ffixed-line-length-132 -ffree-line-length-huge
+# endif
+# ifeq "$(fcompiler)" "gfortran"
+# FLAGS += -fno-automatic
+# endif
 
 OBJECTS = ${sources:.for=.o}
 
@@ -32,10 +34,13 @@ clean:
 	${RM} *.a
 
 iri${EXT}: ${OBJECTS}
-	${G95} -o iri${EXT} iritest.o irisub.o irifun.o iritec.o iridreg.o igrf.o igrf12.o cira.o
+	${g95} ${FLAGS} -o iri${EXT} iritest.o irisub.o irifun.o iritec.o iridreg.o igrf.o igrf12.o cira.o -fPIC
 
 libiri.a: ${OBJECTS}
-	ar rc libiri.a iritest.o irisub.o irifun.o iritec.o iridreg.o igrf.o igrf12.o cira.o
+	ar rc libiri.a irisub.o irifun.o iritec.o iridreg.o igrf.o igrf12.o cira.o
+
+test:
+	${G95} iritest.for ${OBJECTS} -o test
 
 .for.o:
 	${G95} ${FLAGS} -c $<

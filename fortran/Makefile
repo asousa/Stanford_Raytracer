@@ -18,15 +18,20 @@ endif
 
 sources = \
 	bmodel_dipole.f95 \
+	pp_profile_d.f95 \
+	switch_d.f95 \
 	constants.f95 \
 	types.f95 \
 	gcpm_dens_model_adapter.f95 \
 	gcpm_dens_model_buildgrid_random_helpermod.f95 \
+	simple_3d_model_adapter.f95 \
 	interp_dens_model_adapter.f95 \
 	scattered_interp_dens_model_adapter.f95 \
 	ngo_dens_model.f95 \
+	ngo_3d_dens_model.f95 \
 	randomsampling_mod.f95 \
 	ngo_dens_model_adapter.f95 \
+	ngo_3d_dens_model_adapter.f95 \
 	kdtree_mod.f95 \
 	util.f95 \
 	raytracer.f95 \
@@ -39,7 +44,7 @@ FLAGS += -O3 -Wall
 
 INCLUDES = -I../tricubic-for
 
-LIBS = -L../xform_double -lxformd -L../xform -lxform -L../gcpm -lgcpm -L../iri2007 -liri -L../xform -lxform -L../tricubic-for -ltricubic -L../tsyganenko -ltsy -L../lapack-3.2.1 -lblas -llapack -lblas
+LIBS = -L../xform_double -lxformd -L../xform -lxform -L../gcpm -lgcpm -L../iri2007 -liri -L../xform -lxform  -L../xform_double -lxformd -L../tricubic-for -ltricubic -L../tsyganenko -ltsy -L../lapack-3.2.1 -lblas -llapack -lblas
 
 OBJECTS = ${sources:.f95=.o}
 

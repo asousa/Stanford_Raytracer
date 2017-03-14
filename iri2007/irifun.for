@@ -7,7 +7,7 @@ C IRI_SUB subroutine (IRISUB.FOR).
 c
 c-----------------------------------------------------------------------
 C   
-c i/o units:  6   messages (during execution) to Konsol (Monitor)
+c i/o units:  6   messages (during execution) to monitor
 c            10   CCIR and URSI coefficients
 c            11   alternate unit for message file (if jf(12)=.false.)
 c            12   solar/ionospheric indices: ig_rz.dat        
@@ -80,16 +80,6 @@ C 2005.01 11/14/05 spreadf_brazil; added constraint 0<=P<=1
 C 2005.02 05/11/06 NeQuick: XE1,TOPQ, M3000HM; stormvd,
 C 2005.02 03/27/07 STORM: hourly interpolation of Ap  [A. Oinats]
 C 2007.00 05/18/07 Release of IRI-2007
-C 2007.01 09/19/07 vdrift et al.: without *8 (no change in results)
-C 2007.01 02/07/09 IONLOW: N+ correction [V. Truhlik]
-C 2007.02 03/30/09 NMDED: avoid exp underflow [K. Choi] 
-C 2007.02 03/30/09 spreadf_brazil: bspl2f et al b(20->30) [Tab Ji]
-C 2007.02 03/30/09 APF_ONLY: Compute monthly F10.7
-C 2007.03 05/26/09 APF_ONLY: replace i with 1 and IMN with ID [R.Conde]
-C 2007.04 07/10/09 CONVER/DATA: 015.78 -> 005.78 [E. Araujo] 
-C 2007.05 07/23/09 STORM/CONVER: long. discont. [R. Conde, E. Araujo] 
-C 2007.05 07/23/09 APF,APF_ONLY: use YearBegin from ap.dat [R. Conde] 
-C 2007.06 02/03/10 APF: text if eof; clean-up APF and APF_only
 C
 C**************************************************************  
 C********** INTERNATIONAL REFERENCE IONOSPHERE ****************  
@@ -100,11 +90,11 @@ C** initialize:	INITIALIZE
 C** NE:         XE1,TOPQ,ZERO,DXE1N,XE2,XE3_1,XE4_1,XE5,XE6,
 C**             XE_1,CALNE
 C** TE/TI:      ELTEIK,SPHARM_IK,TEBA,SPHARM,ELTE,TEDE,TI,TEDER,
-C**		        TN,DTNDH
-C** NI:         RPID,RDHHE,RDNO,KOEFP1,KOEFP2,KOEFP3,SUFE,IONCO2,
-C**             APROK,IONCOMP,IONCO1,CALION,IONLOW,IONHIGH,INVDPC
+C**		          TN,DTNDH
+C** NI:         RPID,RDHHE,RDNO,KOEFP1,KOEFP2,KOEFP3,SUFE
+C**               IONCO2,APROK,IONCOMP,IONCO1,CALION,INVDPC
 C** PEAKS:      FOUT,XMOUT,HMF2ED,FOF1ED,f1_c1,f1_prob,FOEEDI,XMDED,
-C**		        GAMMA1
+C**		          GAMMA1
 C** PROFILE PAR:B0_98,TAL,VALGUL
 C** MAG. FIELD: GGM,FIELDG,CONVER(Geom. Corrected Latitude)
 C** FUNCTIONS:  REGFA1
@@ -808,12 +798,6 @@ C     1000km level
 	N100A=N0A100
 	N100B=N0B100
 	N1000=(N100B-N100A)/(DDDB-DDDA)*(DDDD-DDDA)+N100A
-
-c   n(O+) and n(N+) should not increase above 650 km
-c       IF(((ION.eq.0).or.(ION.eq.3)).and.(N1000.gt.N650)) 
-c     &       N1000=N650
-c   n(H+) should not increase decrease above 650 km
-c       if(((ION.eq.1).and.(N1000.gt.N650)) N1000=N650
           
 C      IF (ALT .LT. 650) NO=(N650-N400)/250.0*(ALT-400)+N400
 C      IF (ALT .GE. 650) NO=(N1000-N650)/350.0*(ALT-650)+N650
@@ -4218,12 +4202,6 @@ C      IF (ALT .GE. 650) NO=(N1000-N650)/350.0*(ALT-650)+N650
 
 C      NION=10**NO
 
-C-02/07/09- n(O+) AND n(N+) must not increase above 650km
-      IF (((ION .EQ. 0) .OR. (ION .EQ. 3)) .AND. (N1000 .GT. N650))
-     &      N1000=N650
-C-02/07/09- n(H+) must not decrease above 650km
-      IF ((ION .EQ. 1) .AND. (N1000 .LT. N650)) N1000=N650
-
       ANO(1)=N400
 	 ANO(2)=N650
 	  ANO(3)=N1000
@@ -4607,9 +4585,9 @@ C
         REAL FUNCTION FOEEDI(COV,XHI,XHIM,XLATI)
 C-------------------------------------------------------
 C CALCULATES FOE/MHZ BY THE EDINBURGH-METHOD.      
-C INPUT: MONTHLY MEAN 10.7CM SOLAR RADIO FLUX measured at ground level  
-C (COV), GEOGRAPHIC LATITUDE (XLATI/DEG), SOLAR ZENITH ANGLE (XHI/DEG 
-C AND XHIM/DEG AT NOON).
+C INPUT: MEAN 10.7CM SOLAR RADIO FLUX (COV), GEOGRAPHIC
+C LATITUDE (XLATI/DEG), SOLAR ZENITH ANGLE (XHI/DEG AND 
+C XHIM/DEG AT NOON).
 C REFERENCE: 
 C       KOURIS-MUGGELETON, CCIR DOC. 6/3/07, 1973
 C       TROST, J. GEOPHYS. RES. 84, 2736, 1979 (was used
@@ -4661,12 +4639,7 @@ c
         if(xhi.ge.90) goto 100
         Y = 6.05E8 + 0.088E8 * R
         yy = cos ( xhi * umr )
-        yyy = -0.1 / ( yy**2.7 ) 
-        if (yyy.lt.-40.) then 
-        	ymd=0.0
-        else
-        	ymd = y * exp(yyy)
-        endif
+        ymd = y * exp( -0.1 / ( yy**2.7 ) )
         if (ymd.lt.yw) ymd = yw
         xmded=ymd
         RETURN          
@@ -5805,13 +5778,12 @@ c
 c the indices are obtained from the indices file ig_rz.dat that is 
 c read in subroutine initialize and stored in COMMON/indices/
 c----------------------------------------------------------------
-
            integer      yr, mm, day, iflag, iyst, iyend,iymst
            integer      imst,iymend
            real         ionoindx(722),indrz(722)
            real         ig(3),rz(3)
 
-           common /iounit/konsol
+           common /iounit/konsol,monito
 
            save         ionoindx,indrz,iflag,iyst,iymst,
      &                  iymend,imst
@@ -6129,32 +6101,23 @@ c--------------------------------------------------------------------
 
         DIMENSION iiap(8),iap(13),lm(12)
 
-        common /iounit/konsol
+        common /iounit/konsol,monito
 
         DATA LM/31,28,31,30,31,30,31,31,30,31,30,31/
-
-        Open(13,FILE='ap.dat',
-c-web-sepcial vfor web version
-c        OPEN(13,FILE='/var/www/omniweb/cgi/vitmo/IRI/ap.dat',
-     *    ACCESS='DIRECT',RECL=39,FORM='FORMATTED',STATUS='OLD')
-        READ(13,10,REC=1,ERR=21) JY,JMN,JD,iiap,F
-        IYBEG=JY+1900
-        CLOSE(13)
-       
-        do i=1,8
-              iap(i)=-1
-              enddo
-
-        if(iyyyy.lt.IYBEG) goto 21   ! file starts at Jan 1, 1958
 
         Open(13,FILe='ap.dat',
 c-web-sepcial vfor web version
 C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
      *    ACCESS='DIRECT',RECL=39,FORM='FORMATTED',STATUS='OLD')
                 
+        do i=1,8
+              iap(i)=-1
+              enddo
+
+        if(iyyyy.lt.1960) goto 21   ! file starts at Jan 1, 1960
         is=0
-        if(iyyyy.gt.IYBEG) then
-            do i=IYBEG,iyyyy-1
+        if(iyyyy.gt.1960) then
+            do i=1960,iyyyy-1
                 nyd=365
                 if(i/4*4.eq.i) nyd=366
                 IS=IS+nyd
@@ -6163,16 +6126,19 @@ C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
 
         lm(2)=28
         if(iyyyy/4*4.eq.iyyyy) lm(2)=29
+        IDN=0
         do i=1,IMN-1
-              IS=IS+LM(i)
+              IDN=IDN+LM(i)
               ENDDO
 
-        IS=IS+ID
+        IDN=IDN+ID
+        IS=IS+IDN
 
         ihour=int(hour/3.)+1
         if(ihour.gt.8) ihour=8
 
         if(is*8+ihour.lt.13) goto 21   ! at least 13 indices available	
+
         READ(13,10,REC=IS,ERR=21) JY,JMN,JD,iiap,F
         do i9=1,8
         	if(iiap(i9).lt.-2) goto 21
@@ -6205,49 +6171,39 @@ C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
                 enddo
         endif         
   10    FORMAT(3I3,8I3,F5.1)
-        CLOSE(13)
         goto 20
-        
 21      if(konsol.gt.1) write(konsol,100)
 100     format(1X,'Date is outside range of Ap indices file.',
      &     ' STORM model is turned off.')
         IAP(1)=-5
-      
-20    RETURN
+20      CLOSE(13)
+      RETURN
       END
 C
 C
-        SUBROUTINE APF_ONLY(IYYYY,IMN,ID,F107D,F107M)
+        SUBROUTINE APF_ONLY(IYYYY,IMN,ID,F107D)
 c--------------------------------------------------------------------
-c Finds daily and monthly F10.7 index, F107D and F107M, for given year 
-c (IYYYY/yyyy), month (IMN/mm), and day (ID/dd) using AP.DAT file on 
-c UNIT=13. Is used for vdrift and foeedi.
+c Finds daily F10.7 index, F107D, for given year IYYYY (yyyy), month  
+c (IMN), and day (ID). Using AP.DAT file on UNIT=13.
+c Is used for vdrift.
 c If date is outside the range of indices file than F107D=-5  
 c--------------------------------------------------------------------
 
         DIMENSION iiap(8),lm(12)
 
-        common /iounit/konsol
+        common /iounit/konsol,monito
 
         DATA LM/31,28,31,30,31,30,31,31,30,31,30,31/
 
         Open(13,FILE='ap.dat',
 c-web-sepcial vfor web version
-c        OPEN(13,FILE='/var/www/omniweb/cgi/vitmo/IRI/ap.dat',
+C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
      *    ACCESS='DIRECT',RECL=39,FORM='FORMATTED',STATUS='OLD')
-        READ(13,10,REC=1,ERR=21) JY,JMN,JD,iiap,F
-        IYBEG=JY+1900
-        CLOSE(13)
-
-        if(iyyyy.lt.IYBEG) goto 21   ! AP.DAT starts at Jan 1, 1958
-
-        Open(13,FILE='ap.dat',
-c-web-sepcial vfor web version
-C      OPEN(13,FILE='/var/www/omniweb/cgi/vitmo/IRI/ap.dat',
-     *    	ACCESS='DIRECT',RECL=39,FORM='FORMATTED',STATUS='OLD')
+                
+        if(iyyyy.lt.1960) goto 21   ! AP.DAT starts at Jan 1, 1960
 
         is=0
-        do i=IYBEG,iyyyy-1
+        do i=1960,iyyyy-1
             nyd=365
             if(i/4*4.eq.i) nyd=366	! leap year
             IS=IS+nyd
@@ -6255,34 +6211,24 @@ C      OPEN(13,FILE='/var/www/omniweb/cgi/vitmo/IRI/ap.dat',
 
         lm(2)=28
         if(iyyyy/4*4.eq.iyyyy) lm(2)=29	  ! leap year
-        
+        IDN=0
         do i=1,IMN-1
-              IS=IS+LM(i)
+              IDN=IDN+LM(i)
               ENDDO
-        
-		sum=0.0
-        mend=lm(imn)
-        do i=1,mend 
-        	IS=IS+1
-        	READ(13,10,REC=IS,ERR=21) JY,JMN,JD,iiap,f
- 			if(f.lt.-4.) goto 21
-        	if (i.eq.ID) F107D=f
-			sum=sum+f
-			enddo
 
-        F107M=sum/mend
-
+        IS=IS+IDN+ID
+        READ(13,10,REC=IS,ERR=21) JY,JMN,JD,iiap,f
+        F107D=f
+		if(f.lt.-4.) goto 21
         
 10      FORMAT(3I3,8I3,F5.1)
-        CLOSE(13)
         goto 20
 
 21      if(konsol.gt.1) write(konsol,100)
-100     format(1X,'Date is outside range of F10.7D indices file',
-     &    ' (F10.7D = F10.7M = F10.7RM12).')
-        F107D = -111.0
-     
-20    RETURN
+100     format(1X,'Date is outside range of F10.7D indices file.')
+
+20      CLOSE(13)
+      RETURN
       END
 
 C      
@@ -6523,7 +6469,7 @@ C       corrected geomagnetic latitude	-90. to +90.
      +010.74,013.48,014.00,015.54,016.74,017.46,017.94,018.30,
      +018.50,018.58,018.32,017.72,016.50,014.64,012.24,009.18,
      +005.84,002.90,003.30,006.16,009.14,011.84,012.30,013.78,
-     +014.94,015.66,016.24,016.50,016.70,016.70,016.42,005.78,
+     +014.94,015.66,016.24,016.50,016.70,016.70,016.42,015.78,
      +014.60,012.90,010.66,007.86,004.88,001.60,001.72,004.96,
      +007.84,010.24,010.70,012.14,013.24,013.96,014.44,014.80,
      +014.90,014.88,014.52,013.92,012.80,011.30,009.28,006.94,
@@ -6570,18 +6516,16 @@ C     Four points of Geomagnetic Coordinates
       gm4 = CORMAG(LO2,LA2)
 
 C     latitudinal points		
-C      X1 = ABS(rla - (INT(rla)))                        
-C      X2 = 2. - X1
-	  x = (rla/2.0 - (INT(rla/2.0)))
+      X1 = ABS(rla - (INT(rla)))                        
+      X2 = 2. - X1
 
 C     longitudinal points		
-C      Y1 = ABS(rlo - (INT(rlo)))                        
-C      Y2 = 18. - Y1
-      y =(rlo/18.0 - (INT(rlo/18.0))) 
-
+      Y1 = ABS(rlo - (INT(rlo)))                        
+      Y2 = 18. - Y1
+      
 C     X AND Y VALUES
-C      x = X1 / (X1 + X2)
-C      y = Y1 / (Y1 + Y2)
+      x = X1 / (X1 + X2)
+      y = Y1 / (Y1 + Y2)
 
 C     INTERPOLATION
       gmla = gm1 * (1 - x) * (1 - y) + gm2 * (1 - y) * (x) + gm3 * (y)
@@ -6872,16 +6816,11 @@ C
 C       OUTPUT:   Y: EQUATORIAL VERTICAL DRIFT [m/s]
 C
 C-------------------------------------------------------------------
-c        IMPLICIT REAL*8 (A-H,O-Z)
-        IMPLICIT REAL (A-H,O-Z)
+        IMPLICIT REAL*8 (A-H,O-Z)
        
-c        real*8 param(2),coeff(624),coeff1(594),coeff2(30),funct(6)
-c        real*8 xt,xl,y
-c        real*8 bspl4,bspl4_time,bspl4_long
-
-        real param(2),coeff(624),coeff1(594),coeff2(30),funct(6)
-        real xt,xl,y
-        real bspl4,bspl4_time,bspl4_long
+        real*8 param(2),coeff(624),coeff1(594),coeff2(30),funct(6)
+        real*8 xt,xl,y
+        real*8 bspl4,bspl4_time,bspl4_long
 
         integer i,j,ind,il,kk
         integer index_t,dim_t,index_l,dim_l,index,dim,nfunc
@@ -7021,17 +6960,13 @@ c        real*8 bspl4,bspl4_time,bspl4_long
        end
 C
 C
-c        real*8 function bspl4_time(i,x1)
-        real function bspl4_time(i,x1)
+        real*8 function bspl4_time(i,x1)
 c       *************************************************
-c        implicit REAL*8 (A-H,O-Z)
-        implicit REAL (A-H,O-Z)
-		 
+        implicit REAL*8 (A-H,O-Z)
+
         integer i,order,j,k
-c        real*8 t_t(0:39)
-c        real*8 x,b(20,20),x1
-        real t_t(0:39)
-        real x,b(20,20),x1
+        real*8 t_t(0:39)
+        real*8 x,b(20,20),x1
 
         data t_t/
      *          0.00,2.75,4.75,5.50,6.25,
@@ -7070,17 +7005,13 @@ c        real*8 x,b(20,20),x1
         end
 C
 C
-        real function bspl4_long(i,x1)
-c        real*8 function bspl4_long(i,x1)
+        real*8 function bspl4_long(i,x1)
 c       *************************************************
-c       implicit real*8 (A-H,O-Z) 
-       implicit real (A-H,O-Z) 
+       implicit real*8 (A-H,O-Z) 
 
         integer i,order,j,k
-c        real*8 t_l(0:24)
-c        real*8 x,b(20,20),x1
-        real t_l(0:24)
-        real x,b(20,20),x1
+        real*8 t_l(0:24)
+        real*8 x,b(20,20),x1
 
         data t_l/
      *          0,10,100,190,200,250,280,310,
@@ -7116,14 +7047,11 @@ C
 C
         subroutine g(param,funct,x)
 c       *************************************************
-c        implicit real*8 (A-H,O-Z)
-        implicit real (A-H,O-Z)
+        implicit real*8 (A-H,O-Z)
 
         integer i
-c        real*8 param(2),funct(6)
-c        real*8 x,a,sigma,gauss,flux,cflux
-        real param(2),funct(6)
-        real x,a,sigma,gauss,flux,cflux
+        real*8 param(2),funct(6)
+        real*8 x,a,sigma,gauss,flux,cflux
 
 c       *************************************************
         flux=param(2)
@@ -7196,10 +7124,8 @@ C    DynamoVd: Disturbane dynamo vertical drifts at given conditions;
 C    Vd: PromptVd+DynamoVd;
 C*********************************************************************
 
-c       IMPLICIT REAL*8(A-H,O-Z)
-       IMPLICIT REAL(A-H,O-Z)
-c       REAL*8 AE(1:366*24*4),Coff1(1:5,1:9),Coff15(1:6,1:9)
-       REAL AE(1:366*24*4),Coff1(1:5,1:9),Coff15(1:6,1:9)
+       IMPLICIT REAL*8(A-H,O-Z)
+       REAL*8 AE(1:366*24*4),Coff1(1:5,1:9),Coff15(1:6,1:9)
        INTEGER FLAG 
        DATA Coff1/
      @           0.0124,-0.0168,-0.0152,-0.0174,-0.0704,
@@ -7416,18 +7342,14 @@ CC
        END                     
 C
 C
-       real function bspl4_ptime(i,x1)
-c       real*8 function bspl4_ptime(i,x1)
+       real*8 function bspl4_ptime(i,x1)
 C *************************************************
 
-c       IMPLICIT REAL*8 (A-H,O-Z)
-       IMPLICIT REAL (A-H,O-Z)
+       IMPLICIT REAL*8 (A-H,O-Z)
 
        integer i,order,j,k
-c       real*8 t_t(0:27)
-c       real*8 x,b(20,20),x1
-       real t_t(0:27)
-       real x,b(20,20),x1
+       real*8 t_t(0:27)
+       real*8 x,b(20,20),x1
 
        data t_t/0.00,3.00,4.50,6.00,9.00,12.0,15.0,18.0,21.0,
      *          24.0,27.0,28.5,30.0,33.0,36.0,39.0,42.0,45.0,
@@ -7680,7 +7602,7 @@ C
 **********************************************************************
       function bspl4t(i,t1)
 **********************************************************************
-      dimension tt(0:78),b(30,30)
+      dimension tt(0:78),b(20,20)
 *
       data tt/16.00,16.50,17.00,17.50,18.00,18.50,19.00,19.50,20.00,
      &  20.50,21.00,22.00,23.00,24.00,25.00,26.00,27.00,27.50,28.00,
@@ -7718,7 +7640,7 @@ C
 ******************************************************************
       function bspl2s(i,t1)
 ******************************************************************
-      dimension ts(0:36),b(30,30)
+      dimension ts(0:36),b(20,20)
 *
       data ts/ 15,46,74,105,135,166,196,227,258,288,319,349,
      *        380,411,439,470,500,531,561,592,623,653,684,714,
@@ -7751,7 +7673,7 @@ C
 *******************************************************************
       function bspl2l(i,t1)
 *******************************************************************
-      dimension ts(0:6),b(30,30)
+      dimension ts(0:6),b(20,20)
 *
       data ts/ 94.,112.5,454.,472.5,814.,832.5,1174./
 *
@@ -7783,7 +7705,7 @@ C
 *************************************************************************
       function bspl2f(i,t1)
 *************************************************************************
-       dimension ts(0:9),b(30,30),
+       dimension ts(0:9),b(20,20),
      & ifnodes1(12),ifnodes2(12),ifnodes3(12)
        common/mflux/kf,n
 *

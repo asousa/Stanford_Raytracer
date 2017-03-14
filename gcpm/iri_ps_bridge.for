@@ -13,41 +13,51 @@ c
 	subroutine iri_ps_bridge(rr,al,alatr,amlt,itime,eq_iri_ps_trough,
      &		transh,rf2,alpha,dno,co,switchh,switchw,istat)
 c
-	real re,tot_delh,delh,rr,rstart,amltrad
-	real rsample1,rsample2
+	implicit none
+	integer, parameter :: SP = selected_real_kind(p=6,r=37)
+	integer, parameter :: DP = selected_real_kind(p=13,r=200)
+
+	real(kind=DP) :: re,tot_delh,delh,rr,rstart,amltrad
+	real(kind=DP) :: rsample1,rsample2
+	real(kind=DP) :: r
 	parameter (re=6371.0,tot_delh=600.0/re,delh=5.0)
 	parameter (r=260.0/re+1.0)
 c	parameter (r=260.0/re+1.0,delr=delh/re)
 	parameter (amltrad=3.1415927/12.0)
 c
-	real outf(20,500),oarr(50),alatr,along
-	real dens,hs,dens_old,rf3
-	real delrr,refden
-	real amlt,rs,al
-	real ro,transh,delhh,alpha,term1
-	real eqh,ano,eq_iri_ps_trough,co,fract
-	real dent
-	real diffr,delr,cosr1,alatr1,cosr2,alatr2
-	real ansample1,ansample2,rloc,rpos,rf2
-	real diffold,rlocold,an1old,an2old,dl,ahemisphere
-	real switchh,switchw
-	real*8 dno,dntransh,dtransh,dalpha
-	integer*4 itime(2)
-	integer istat,icount,iflag
+	real(kind=DP) :: outf(20,100),oarr(50),alatr,along
+	real(kind=DP) :: hs,rf3
+	real(kind=DP) :: refden
+	real(kind=DP) :: amlt,rs,al
+	real(kind=DP) :: ro,transh,alpha,term1
+	real(kind=DP) :: eqh,ano,eq_iri_ps_trough,co,fract
+	real(kind=DP) :: diffr
+	real(kind=DP) :: rloc,rpos,rf2
+	real(kind=DP) :: diffold,rlocold,dl,ahemisphere
+	real(kind=DP) :: switchh,switchw
+	real(kind=DP) :: dno
 
+	real(kind=SP) :: amod
+	real(kind=DP) :: cosrl, alatrl, r2, diffh, ah1, ah2, r1, antransh
+	real(kind=DP) :: an1, an2, an3
+
+	integer(kind=SP) :: itime(2)
+	integer(kind=SP)istat,icount,iflag
+
+	real(kind=DP) :: rz12, f107, neiri, nhoiri, nheiri, noiri
 	common /irioutput/ rz12,f107,neiri,nhoiri,nheiri,noiri
 
-c	type *,'entering iri_ps_bridge',rr,al,amlt,itime,eq_iri_ps_trough
+d	print *,'entering iri_ps_bridge',rr,al,amlt,itime,eq_iri_ps_trough
 c istat must be either 0 or -1 as it is used in an equation later
 	istat=0
 	dl=al
 c !Trevor Garner found error assuming north only, now pass latitude
-	ahemisphere=sign(1.0,alatr)
+	ahemisphere=sign(1.0_DP,alatr)
 c  get height and densiy of the f2 peak
 c	cosrl=amin1(sqrt(r/al),1.0)
 c	alatr=acos(cosrl)  !Trevor Garner found error assuming north only, now pass lat
-	along=amod((amlt+12.0),24.0)*amltrad
-	cosrl=amin1(sqrt(r/al),1.0)
+	along=mod(amlt+12.0,24.0_DP)*amltrad
+	cosrl=min1(sqrt(r/al),1.0_DP)
 	alatrl=acos(cosrl)*ahemisphere
 	  call iri_sm(alatrl,along,r,itime,outf,oarr)
       r2=oarr(2)/re+1.0
@@ -68,11 +78,11 @@ c  then the L-shell provided is exclusively an ionospheric issue
 c  and we need to pass back parameters that will minimize the hassle
 c  associated with the rest of the calculation for density, which
 c  will necessarily exclude the bridge density anyway.
-c     type *,'f2 peak at:',rf2,al
+d     print *,'f2 peak at:',rf2,al
 
 	if(rr.le.rf2) then
 	  istat=-1
-c	  type *,'No bridge required, istat=-1 ',rs,al
+d	  print *,'No bridge required, istat=-1 ',rs,al
 	  return
 	endif
 
@@ -83,7 +93,7 @@ c (derived from the search algorithm above) as a function of returned
 c rz12 value from IRI2007. That analysis obtained this relationship:
 c     ro = (1.05454+-0.000102) + (8.62678e-5+-1.20975e-6)*rz12
       ro = 1.05454 + 8.62678e-5*rz12
-c     type *,'fieldaligned_bridge:',rz12,ro,rf2      
+d     print *,'fieldaligned_bridge:',rz12,ro,rf2      
       if (ro .le. rf2) ro=rf2+0.01
 
 	transh=(ro-1.0)*re
@@ -108,28 +118,28 @@ c calculation of the power law function.
 	alatrl=acos(cosrl)*ahemisphere
 	call iri_sm(alatrl,along,r1,itime,outf,oarr)
 	an1=outf(1,1)
-c     type *,'an1: ',alatrl,along,r1,an1,al
+d     print *,'an1: ',alatrl,along,r1,an1,al
 	cosrl=amin1(sqrt(r2/al),1.0)
 	alatrl=acos(cosrl)*ahemisphere
 	call iri_sm(alatrl,along,r2,itime,outf,oarr)
 	an2=outf(1,1)
-c     type *,'an2: ',alatrl,along,r2,an2,al
+d     print *,'an2: ',alatrl,along,r2,an2,al
 
 	if(al.le.r2) then
 	  istat=-1
-c	  type *,'No bridge required, istat=-1 ',al,r2
+d	  print *,'No bridge required, istat=-1 ',al,r2
 	  return
 	endif
 
 	eqh=(al-1.0)*re
-c      type *,'bridge=',ah1,ah2,eqh,transh,antransh
-c      type *,'      =',an1,an2,eq_iri_ps_trough
-      alpha=-alog10(an1/an2)/alog10(ah1/ah2)
+d      print *,'bridge=',ah1,ah2,eqh,transh,antransh
+d      print *,'      =',an1,an2,eq_iri_ps_trough
+      alpha=-dlog10(an1/an2)/dlog10(ah1/ah2)
       ano=an1*ah1**alpha
-c      type *,'intial alpha,ano:',alpha,ano
+d      print *,'intial alpha,ano:',alpha,ano
       
       an3=ano*eqh**(-alpha)
-c      type *,'setup:',an3,eq_iri_ps_trough
+d      print *,'setup:',an3,eq_iri_ps_trough
 
 c set up use of switch term that will not function by default
       switchh=eqh*2.0
@@ -137,19 +147,19 @@ c set up use of switch term that will not function by default
 
       if (eq_iri_ps_trough .ge. an3) then
         if(an2.le.eq_iri_ps_trough) then
-c     type *,'inverse IRI-eq:'
-          alpha=alog10(antransh/eq_iri_ps_trough)/alog10(transh/eqh)
+d     print *,'inverse IRI-eq:'
+          alpha=dlog10(antransh/eq_iri_ps_trough)/dlog10(transh/eqh)
           ano=antransh*transh**alpha
           dno=ano
         else
-c      type *,'greater than or equal too'
+d      print *,'greater than or equal too'
           co=eq_iri_ps_trough - an3
-          alpha=-alog10((an1-co)/(an2-co))/alog10(ah1/ah2)
+          alpha=-dlog10((an1-co)/(an2-co))/dlog10(ah1/ah2)
           ano=(an1-co)*ah1**alpha
           dno=ano
         endif
       else
-c      type *,'less than'
+d      print *,'less than'
 c  keep initial alpha and ano values
 c  provide switch values that bring the bridge function to the equatorial
 c  density at the equator
@@ -160,10 +170,10 @@ c  density at the equator
       endif
         
       
-c	type *,'final=',dno,alpha,co
-c	type *,'    =',ah1,ah2,eqh,an1,an2,eq_iri_ps_trough
+d	print *,'final=',dno,alpha,co
+d	print *,'    =',ah1,ah2,eqh,an1,an2,eq_iri_ps_trough
 
-c	type *,dens_old,dens,delh,hs
-c	type *,'leaving iri_ps_bridge',alpha,ano,transh,switchh,switchw,co
+d	print *,dens_old,dens,delh,hs
+d	print *,'leaving iri_ps_bridge',alpha,ano,transh,switchh,switchw,co
 	return
 	end

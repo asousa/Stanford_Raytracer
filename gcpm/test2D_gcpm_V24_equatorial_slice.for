@@ -19,7 +19,7 @@ c	open(unit=4,file='test_ne.txt',type='replace')
 	  x=float(i-100)/10.0
 c        i=16
 c        x=1.4
-	  print *,'%being worked: ',float(i)/2.0
+	  type *,'%being worked: ',float(i)/2.0
 	do j=0,200
 	  y=float(j-100)/10.0
 c        j=6
@@ -32,16 +32,15 @@ c        y=0.6
 c            type *,'out:',outn(1),x,y,r,amlt,alatr
 c          write(4,*) x,y,outn(1)
           if ((outn(1).lt.0.0) .or. (outn(1).gt.1.0e7)) then
-            print *,'we be stopped'
-            print *,'outn:',outn(1),x,y,r,amlt,alatr
+            type *,'we be stopped'
+            type *,'outn:',outn(1),x,y,r,amlt,alatr
             stop
           endif
           den(i+1,j+1)=outn(1)
 	enddo
       enddo
      
-c	open(unit=3,file='test_equatorial.bin',type='replace',form='binary')
-	open(unit=3,file='test_equatorial.bin')
+	open(unit=3,file='test_equatorial.bin',type='replace',form='binary')
       write(3) den
       close(unit=3)
 c      close(unit=4)

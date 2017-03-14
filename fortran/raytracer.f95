@@ -751,7 +751,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
              sum(abs(dfdk_est1-dfdk_est2))/sum(abs(dfdk_est2)))
 
         if( err > maxerr ) then
-          ! if ( dt > 1e-8) then
+          if ( dt > 1e-6) then
            ! retry
            ! (Constraining to a minimum timestep... 2.2017)
            !print *, 'Refine down'
@@ -759,9 +759,10 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
            ! Prevent refinement loops
            lastrefinedown = 1
            cycle
-          ! else
-          !   print *, "dt at minimum"
-          ! end if
+          else
+            ! print *, "dt at minimum"
+            dt=1e-6
+          end if
         end if
         if( lastrefinedown==0 .and. &
            err < maxerr/10.0_DP .and. &

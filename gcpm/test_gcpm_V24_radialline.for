@@ -12,7 +12,7 @@ c
       isec=0
       itime(2)=(ihr*3600 + imin*60 + isec) * 1000
 	
-	open(unit=3,file='test_radial.txt') !,type='replace')
+	open(unit=3,file='test_radial.txt',type='replace')
 
 	akp=4.0
 	alatd=45.0
@@ -25,7 +25,7 @@ c
 	  alt=(r - 1.0) * 6371.0
         call gcpm_v24(itime,r,amlt,alatr,akp,outn)
         write(3,*) r,alt,outn(1)
-        print *,r,alt,outn(1)
+        type *,r,alt,outn(1)
 	enddo
       close(unit=3)
 

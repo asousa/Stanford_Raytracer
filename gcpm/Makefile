@@ -19,13 +19,7 @@ sources = \
 	pp_profile.for \
 	switchon.for
 
-# Use the -fstatic option with g95.  With gfortran, use -fno-automatic
-ifeq "$(G95)" "g95"
-FLAGS = -O3 -Wall -fstatic
-endif
-ifeq "$(G95)" "gfortran"
-FLAGS = -O3 -Wall -fno-automatic
-endif
+
 
 OBJECTS = ${sources:.for=.o}
 

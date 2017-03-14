@@ -32,10 +32,10 @@ Directory Contents:
 -----------------------------------------------------------------------------------
 
 00_iri2007.tar	TAR file that includes all files from this directory. Was created
-                in UNIX using 'tar -cvf 00_iri2007.tar *'. UNIX command to unpack
-                is "tar -xvf 00_iri2007.tar". 
+				in UNIX using 'tar -cvf 00_iri2007.tar *'. UNIX command to unpack
+				is "tar -xvf 00_iri2007.tar". 
 				 
-irisub.for      This file contains the main subroutine iri_sub. It computes 
+irisub.for	    This file contains the main subroutine iri_sub. It computes 
                 height profiles if IRI output parameters (Ne, Te, Ti, Ni, vi) 
                 for specified date and location. Also included is the 
                 subroutine iri_web that computes output parameters versus
@@ -45,17 +45,17 @@ irisub.for      This file contains the main subroutine iri_sub. It computes
                 irisub.for, irifun.for, iritec.for, iridreg.for, igrf.for, and
                 cira.for.
 
-irifun.for      This file contains the subroutines and functions that are 
+irifun.for	    This file contains the subroutines and functions that are 
                 required for running IRI.
 
 iridreg.for     Subroutines for the D region models of Friedrich-Torkar
                 and of Danilov et al.
 
-iritec.for      This file includes the subroutines for computing the ionospheric 
+iritec.for 	    This file includes the subroutines for computing the ionospheric 
                 electron content from 60km up to a specified upper limit. 
 
-cira.for        This file includes the subroutines and functions for computing 
-                the COSPAR International Reference Ionosphere 1986 (CIRA-86) 
+cira.for	    This file includes the subroutines and functions for computing 
+		        the COSPAR International Reference Ionosphere 1986 (CIRA-86) 
                 neutral temperature. 
 
 igrf.for        This file includes the subroutines for the International
@@ -70,18 +70,16 @@ iritest.for 	Test program indicating how to use of the IRI subroutines.
                 Requires irisub, irifun, iritec, iridreg, igrf,and cira.
 
 input.txt       Input parameters for a few examples using the iritest.for program.
-output.txt      Output from the test program for the input.txt input parameters.
+output.txt 	    Output from the test program for the input.txt input parameters.
 
-ig_rz.dat       This file(s) contains the solar and ionospheric indices (IG12, Rz12) 
-ig_rz1.dat      for the time period from Jan 1958 onward. The file is updated 
+ig_rz.dat	    This file contains the solar and ionospheric indices (IG12, Rz12) 
+                for the time period from Jan 1958 onward. The file is updated 
                 quarterly. It is read by subroutine tcon in irifun.for (ASCII). 
-                Two files are given to show the difference in IG12 and RZ12 
-                predictions.
 
-ap.dat          This file provides the 3-hour ap magnetic index and F10.7 daily
-                index from 1960 onward (ASCII).
+ap.dat		    This file provides the 3-hour ap magnetic index and F10.7 daily
+				index from 1960 onward (ASCII).
 
-CCIR%%.ASC,     Coefficient files for the global representation of the F2 peak
+CCIR%%.ASC,	    Coefficient files for the global representation of the F2 peak
    URSI%%.ASC	peak parameters (foF2, M3000) where %% = Month+10 (ASCII). CCIR is
                 the model recommended by the International Committee Consultative  
                 on Radiocommunication (CCIR) of the International Union of 
@@ -89,31 +87,28 @@ CCIR%%.ASC,     Coefficient files for the global representation of the F2 peak
                 International Union of Radio Science. IRI recommends the CCIR
                 model for the continents and the URSI model for the ocean areas.
                 If a single model is needed globally URSI is recommended.
------------------------------------------------------------------------------------
 
 Stand-alone Programs:
 
-IMAZ            The Ionospheric model for the Auroral Zone (IMAZ) specifies the
-                electron density in the auroral E-region using a NeuralNet
-                approach and expecting as input (auroral) latitude, longitude, year,
-                day of year, hour, 3-hourly Ap, daily F10.7, and riometer 
-                absoprtion as an optional input if available. Consist of the
-                following files iri_imaz.for, imaztest.for, chapman.prn, 
-                press_60deg.txt, press_70deg.txt, and 00readme_imaz.txt.
+IMAZ			The Ionospheric model for the Auroral Zone (IMAZ) specifies the
+				electron density in the auroral E-region using a NeuralNet
+				approach and expecting as input (auroral) latitude, longitude, year,
+				day of year, hour, 3-hourly Ap, daily F10.7, and riometer 
+				absoprtion as an optional input if available. Consist of the
+				following files iri_imaz.for, imaztest.for, chapman.prn, 
+				press_60deg.txt, press_70deg.txt, and 00readme_imaz.txt.
 	
 akebono_te.for	Model for the plasmspheric electron temperature based on Akebono 
-                measurements. The file includes the model subroutines and 
-                coefficients and a simple driver program to illustrate its usage.  
-
------------------------------------------------------------------------------------
+				measurements. The file includes the model subroutines and 
+				coefficients and a simple driver program to illustrate its usage.  
 -----------------------------------------------------------------------------------
 
-NOTE: Please consult the 'listing of changes' in the comments section at the top 
+Please consult the 'listing of changes' in the comments section at the top 
 of each one of these programs for recent corrections and improvements.
 
-More information about the IRI project can be found at  http://IRI.gsfc.nasa.gov
+More information about the IRI project can be found at
+	http://modelweb.gsfc.nasa.gov/ionos/iri.html
+IRI parameters can be calculated and plotted online at
+	http://modelweb.gsfc.nasa.gov/models/iri.html
 
-IRI parameters can be calculated and plotted online at sites given on the homepage
-
-
---------------------------------------- dieter bilitza ------------------ Feb 2009
+------------------------ dieter bilitza ------------------ May 2007

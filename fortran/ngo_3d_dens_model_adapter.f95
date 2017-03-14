@@ -1,22 +1,26 @@
-! This module implements an adapter for GCPM with a dipole magnetic
-! field in solar magnetic (SM) coordinates
-module gcpm_dens_model_adapter
+! This module implements an adapter for the Ngo density model.  It is
+! uniform in azimuth.
+module ngo_3d_dens_model_adapter
   use types
   use util
   use constants, only : R_E, PI
+  ! The ngo density model doesn't have a proper interface, so 
+  ! just pull the variables we need into scope
+  use ngo_3d_dens_model, only : readinput, dens, ani, z, L, R0, latitu, lk, l0, ddk
+  use pp_profile_d
   use bmodel_dipole
   implicit none
 
   ! Types for marshalling.  This is required since the user of this adapter
   ! needs to set additional data for this adapter that is not in the 
   ! interface for funcPlasmaParams() used by the raytracer.
-  type :: gcpmStateData
+  type :: ngo3dStateData
      !	itime	integer	dimensions=2
      !		(1) = yearday, e.g. 2001093
      !		(2) = miliseconds of day
      integer :: itime(2)
-     !		planetary Kp index
-     real(kind=DP) :: akp
+     real(kind=DP) :: kp
+
      ! Tsyganenko parameters
      real(kind=DP) :: Pdyn, Dst, ByIMF, BzIMF
      real(kind=DP) :: W1, W2, W3, W4, W5, W6
@@ -28,18 +32,29 @@ module gcpm_dens_model_adapter
      ! Whether to constrain ray tracing to a constant MLT (1) or not (0)
      integer :: fixed_MLT
      real(kind=DP) :: MLT
-     
-  end type gcpmStateData
+  end type ngo3dStateData
   ! Pointer container type.  This is the data that is actually marshalled.
-  type :: gcpmStateDataP 
-     type(gcpmStateData), pointer :: p
-  end type gcpmStateDataP
+  type :: ngo3dStateDataP 
+     type(ngo3dStateData), pointer :: p
+  end type ngo3dStateDataP
 
   ! Imported from geopack
   real(kind=SP) :: PSI
   COMMON /GEOPACK1/ PSI
 
 contains
+
+
+  subroutine setup( dat, filename )
+    character (len=*),intent(in) :: filename
+    type(ngo3dStateData),intent(inout) :: dat
+    ! So far dat isn't used.  In the future I'd like to make 
+    ! the Ngo model more stateless, or push all the state into dat
+
+    ! Read the input file
+    call readinput(filename)
+
+  end subroutine setup
 
   ! Implementation of the plasma parameters function.
   ! Inputs:
@@ -55,16 +70,17 @@ contains
   subroutine funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
     implicit none
 
+    real(kind=DP) :: x(3), x_gsm(3)
     real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
     real(kind=DP) :: B0(3), B0tmp(3), B0tmp2(3)
     character :: funcPlasmaParamsData(:)
 
-    real(kind=DP) :: p_sm(3)
+    real(kind=DP) :: r, lam, lamr
+    real(kind=DP) :: p(3)
+    real(kind=DP) :: d2r
     real(kind=DP) :: ce,ch,che,co
-    real(kind=DP) :: x(3),x_gsm(3)
-    
-    real(kind=DP) :: r, amlt, alatr
-    real(kind=DP) :: outn(4)
+
+    real(kind=DP) :: pp_factor, amlt, akp, a8
 
     integer :: year, day, hour, min, sec
 
@@ -74,34 +90,14 @@ contains
     real(kind=SP) :: B0xTsy, B0yTsy, B0zTsy
     real(kind=SP) :: B0xBASE, B0yBASE, B0zBASE
 
+    type(ngo3dStateDataP) :: datap
 
-
-    type(gcpmStateDataP) :: datap
 
     iopt = 0
 
     ! Unmarshall the callback data
     datap = transfer(funcPlasmaParamsData, datap)
 
-!!$    print *, 'itime=', datap%p%itime
-!!$    print *, 'akp=', datap%p%akp
-!!$    print *, 'Pdyn=', datap%p%Pdyn
-!!$    print *, 'Dst=', datap%p%Dst
-!!$    print *, 'ByIMF=', datap%p%BzIMF
-!!$    print *, 'W1=', datap%p%W1
-!!$    print *, 'W2=', datap%p%W2
-!!$    print *, 'W3=', datap%p%W3
-!!$    print *, 'W4=', datap%p%W4
-!!$    print *, 'W5=', datap%p%W5
-!!$    print *, 'W6=', datap%p%W6
-!!$    print *, 'use_tsyganenko=', datap%p%use_tsyganenko
-!!$    print *, 'use_igrf=', datap%p%use_igrf
-!!$    stop
-    
-
-
-
-    ! Allocate data if not already
     if (.not.(allocated(qs))) then
        allocate(qs(4))
     end if
@@ -114,80 +110,76 @@ contains
     if (.not.(allocated(nus))) then
        allocate(nus(4))
     end if
-    
-    ! Convert from SM x,y,z to GSM x,y,z needed by 
-    ! the Tsyganenko model
-    call SM_TO_GSM_d(datap%p%itime,x,x_gsm)
-    
-    ! convert to spherical coordinates
-    p_sm = cartesian_to_spherical(x)
-    ! Convert magnetic r,theta,phi to SM local time in hours
 
+
+
+
+
+
+
+    ! given x is in SM coordinates, with z parallel to the dipole axis
+    d2r = 2.0_DP*pi/360.0_DP
+    ! r,theta,phi <- x,y,z
+    ! theta is azimuth
+    ! phi is angle from the z axis
+    p = cartesian_to_spherical(x)
+
+    ! MLT from longitude
     if( datap%p%fixed_MLT == 1 ) then
       amlt = datap%p%MLT
     else
-      amlt = mod(24.0_DP*p_sm(2)/(2.0_DP*pi)+12.0_DP,24.0_DP)
+      amlt = mod(24.0_DP*p(2)/(2.0_DP*pi)+12.0_DP,24.0_DP)
     end if
-    ! amlt = 0.0_DP
-    ! compute r, the geocentric distance in RE
-    r = p_sm(1)/R_E
-    ! Convert magnetic r,theta,phi to SM latitude in radians
-    alatr = pi/2.0_DP - p_sm(3)
 
-    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-    !	Input parameters:
-    !
-    !	itime	integer	dimensions=2
-    !		(1) = yearday, e.g. 2001093
-    !		(2) = miliseconds of day
-    !	r		real(kind=SP)		dimension=1
-    !		geocentric radial distance in Re
-    !	amlt	real(kind=SP)		dimension=1
-    !		solar magnetic local time in hours
-    !	alatr	real(kind=SP)		dimension=1
-    !		solar magnetic latitude in radians
-    !	akp		real(kind=SP)		dimension=1
-    !		planetary Kp index
-    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-    
-    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-    !	Output parameters:
-    !	outn	real(kind=SP)		dimensions=4
-    !			(1) = total electron density in 1/cm^3
-    !			(2) = total hydrogen density in 1/cm^3
-    !			(3) = total helium density in 1/cm^3
-    !			(4) = total oxygen density in 1/cm^3
-    !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-    ! print *, 'PRE: itime=', datap%p%itime, 'r=', r, 'amlt=', amlt, 'alatr=', alatr,'akp=',datap%p%akp, 'outn=',outn
-    call gcpm_v24(datap%p%itime,r,amlt,&
-         alatr,datap%p%akp,outn)
-    ! print *, 'POST: itime=', datap%p%itime, 'r=', r, 'amlt=', amlt, 'alatr=', alatr,'akp=',datap%p%akp, 'outn=',outn
 
-    ! print *, 'we did it'
-    ce = dble(outn(1))
-    ch = dble(outn(2))
-    che =dble(outn(3))
-    co = dble(outn(4))
+    ! L = r/(RE*sin^2(phi))
+    if( R_E*sin(p(3))**2 /= 0.0_DP ) then
+       L = p(1)/(R_E*sin(p(3))**2)
+    else
+       L = 0.0_DP
+    end if
+    ! NOTE lam is in degrees!
+    lam = 90.0_DP-(p(3)*360.0_DP/2.0_DP/pi)
+    lamr = d2r*lam
+
+    r = r0 * L * cos(lamr)**2 ! geocentric radii for all (L,lam) pairs
+
+    z(1) = r
+    z(2) = d2r*(90.0_DP-lam)
+    latitu = lam
+
+    ! Get plasmapause location at current mlt, etc.
+    ! (a8 = plasmapause location in Re... pp_factor is a slope of sorts?)
+    ! (slope)=          (radius, MLT, Kp, L_pp)
+    pp_factor=pp_profile(r/r0,amlt,datap%p%kp,a8)
+
+    ! print *, 'r: ',r, 'MLT: ',amlt
+    ! print *,"PP factor: ", pp_factor, "a8: ", a8
+
+    ! Assign plasmapause location to the ngo module variable
+    lk = real(a8 - ddk, kind=DP)
+    ! Assign any other parameters here
+    ! l0(3) = real(a8, kind=DP)
+
+
+    ! update
+    call dens
     
-    if( ce == 0.0_DP ) then
-       ce = 1e-12
-    end if
-    if( ch == 0.0_DP ) then
-       ch = 1e-12
-    end if
-    if( che == 0.0_DP ) then
-       che = 1e-12
-    end if
-    if( co == 0.0_DP ) then
-       co = 1e-12
-    end if
-   
+    ce = ani(1) ! dissect the answer
+    ch = ani(2)
+    che = ani(3)
+    co = ani(4)
+
     qs = 1.602e-19_DP*(/ -1.0_DP, 1.0_DP, 1.0_DP, 1.0_DP /);
     ms = (/ 9.10938188e-31_DP, 1.6726e-27_DP, &
          4.0_DP*1.6726e-27_DP, 16.0_DP*1.6726e-27_DP /);
     ! Convert to m^-3;
     Ns = 1.0e6_DP*(/ ce, ch, che, co /);
     nus = (/ 0.0_DP, 0.0_DP, 0.0_DP, 0.0_DP /);
+
+    ! Convert from SM x,y,z to GSM x,y,z needed by 
+    ! the Tsyganenko model
+    call SM_TO_GSM_d(datap%p%itime,x,x_gsm)
 
     ! Tsyganenko magnetic field
     
@@ -243,11 +235,12 @@ contains
     B0tmp(2) = (B0yBASE+B0yTsy)*1.0e-9_DP
     B0tmp(3) = (B0zBASE+B0zTsy)*1.0e-9_DP
 
+
     ! We're in GSM coordinates.  Rotate back to SM
     call GSM_TO_SM_d(datap%p%itime,B0tmp,B0)
 
-    
+!!$    ! FRF TESTING
+!!$    B0 = bmodel_cartesian( x )
+!!$
   end subroutine funcPlasmaParams
-
-
-end module gcpm_dens_model_adapter
+end module ngo_3d_dens_model_adapter

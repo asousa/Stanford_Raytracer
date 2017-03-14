@@ -4,6 +4,12 @@ program raytracer_driver
   use constants, only : R_E, PI, VERSION
   use ngo_dens_model_adapter, only : fngo=>funcPlasmaParams, ngoStateData, &
        ngoStateDataP, ngosetup=>setup
+  use ngo_3d_dens_model_adapter, only : fngo3d=>funcPlasmaParams, ngo3dStateData, &
+       ngo3dStateDataP, ngo3dsetup=>setup
+
+  use simple_3d_model_adapter, only : fsimple=>funcPlasmaParams, simpleStateData, &
+       simpleStateDataP
+
   use gcpm_dens_model_adapter, only : fgcpm=>funcPlasmaParams, &
        gcpmStateData, gcpmStateDataP
   use interp_dens_model_adapter, only : finterp=>funcPlasmaParams, &
@@ -37,8 +43,14 @@ program raytracer_driver
   type(ngoStateData),target :: ngo_state_data
   type(ngoStateDataP) :: ngo_state_datap
 
+  type(ngo3dStateData),target :: ngo3d_state_data
+  type(ngo3dStateDataP) :: ngo3d_state_datap
+
   type(gcpmStateData),target :: gcpm_state_data
   type(gcpmStateDataP) :: gcpm_state_datap
+
+  type(simpleStateData),target :: simple_state_data
+  type(simpleStateDataP),target :: simple_state_datap
 
   type(interpStateData),target :: interp_state_data
   type(interpStateDataP) :: interp_state_datap
@@ -226,6 +238,7 @@ program raytracer_driver
   ! number.  For double-precision models, obviously something higher
   ! can be used (1e-8 or thereabouts).
   del = 1.0e-4_DP
+  ! del = 1.0e-6_DP
   ! del = 1.0e-8_DP
 
   if( modelnum == 1 ) then
@@ -744,6 +757,251 @@ program raytracer_driver
      print *, 'Done'
      flush(OUTPUT_UNIT)
 
+  elseif( modelnum == 5 ) then
+     !!!!!!!!!!!!!!!!!!!!!!! Ngo setup
+     ! The Ngo model is the old raytracer plasmasphere model
+     
+     ! we need to set up the model paramaters and marshall the setup data
+     ! Read the arguments
+     ! configuration file
+     call getopt_named( 'ngo_configfile', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,'(a)') ngo_configfile
+     end if
+     ! yearday
+     call getopt_named( 'yearday', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        ngo3d_state_data%itime(1) = floor(tmpinput)
+     end if
+     ! milliseconds_day
+     call getopt_named( 'milliseconds_day', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        ngo3d_state_data%itime(2) = floor(tmpinput)
+     end if
+     ! use_tsyganenko
+     call getopt_named( 'use_tsyganenko', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        ngo3d_state_data%use_tsyganenko = floor(tmpinput)
+     end if
+     ! use_igrf
+     call getopt_named( 'use_igrf', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        ngo3d_state_data%use_igrf = floor(tmpinput)
+     end if
+     call getopt_named( 'ngo_kp', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        ngo3d_state_data%kp = tmpinput
+     end if
+     ! tsyganenko_Pdyn
+     call getopt_named( 'tsyganenko_Pdyn', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%Pdyn
+     end if
+     ! tsyganenko_Dst
+     call getopt_named( 'tsyganenko_Dst', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%Dst
+     end if
+     ! tsyganenko_ByIMF
+     call getopt_named( 'tsyganenko_ByIMF', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%ByIMF
+     end if
+     ! tsyganenko_BzIMF
+     call getopt_named( 'tsyganenko_BzIMF', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%BzIMF
+     end if
+     ! tsyganenko_W1
+     call getopt_named( 'tsyganenko_W1', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%W1
+     end if
+     ! tsyganenko_W2
+     call getopt_named( 'tsyganenko_W2', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%W2
+     end if
+     ! tsyganenko_W3
+     call getopt_named( 'tsyganenko_W3', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%W3
+     end if
+     ! tsyganenko_W4
+     call getopt_named( 'tsyganenko_W4', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%W4
+     end if
+     ! tsyganenko_W5
+     call getopt_named( 'tsyganenko_W5', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%W5
+     end if
+     ! tsyganenko_W6
+     call getopt_named( 'tsyganenko_W6', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) ngo3d_state_data%W6
+     end if
+
+     ! Marshall our data to the callback
+     ! associate a pointer to the state data provided by the user
+     ngo3d_state_dataP%p => ngo3d_state_data
+     ! marshall the data pointer to our function
+     sz = size(transfer(ngo3d_state_datap, data))
+     allocate(data(sz))
+     data = transfer(ngo3d_state_dataP, data)
+     
+     ! Call the setup routine to open a source file
+     call ngo3dsetup(ngo3d_state_data, ngo_configfile)
+
+     print *, 'Ngo Model parameters:'
+     print *, '   ngo_configfile:   ', trim(ngo_configfile)
+     print *, '   yearday:          ', ngo3d_state_data%itime(1)
+     print *, '   milliseconds_day: ', ngo3d_state_data%itime(2)
+     print *, '   use_tsyganenko:   ', ngo3d_state_data%use_tsyganenko
+     print *, '   use_igrf:         ', ngo3d_state_data%use_igrf
+     print *, '   ngo_kp:           ', ngo3d_state_data%kp
+     print *, '   tsyganenko_Pdyn:  ', ngo3d_state_data%Pdyn
+     print *, '   tsyganenko_Dst:   ', ngo3d_state_data%Dst
+     print *, '   tsyganenko_ByIMF: ', ngo3d_state_data%ByIMF
+     print *, '   tsyganenko_BzIMF: ', ngo3d_state_data%BzIMF
+     print *, '   tsyganenko_W1:    ', ngo3d_state_data%W1
+     print *, '   tsyganenko_W2:    ', ngo3d_state_data%W2
+     print *, '   tsyganenko_W3:    ', ngo3d_state_data%W3
+     print *, '   tsyganenko_W4:    ', ngo3d_state_data%W4
+     print *, '   tsyganenko_W5:    ', ngo3d_state_data%W5
+     print *, '   tsyganenko_W6:    ', ngo3d_state_data%W6
+     flush(OUTPUT_UNIT)
+
+  elseif( modelnum == 6 ) then
+     !!!!!!!!!!!!!!!!!!!!!!! Ngo setup
+     ! The Ngo model is the old raytracer plasmasphere model
+     
+     ! we need to set up the model paramaters and marshall the setup data
+     ! Read the arguments
+     ! configuration file
+     call getopt_named( 'ngo_configfile', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,'(a)') ngo_configfile
+     end if
+     ! yearday
+     call getopt_named( 'yearday', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        simple_state_data%itime(1) = floor(tmpinput)
+     end if
+     ! milliseconds_day
+     call getopt_named( 'milliseconds_day', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        simple_state_data%itime(2) = floor(tmpinput)
+     end if
+     ! use_tsyganenko
+     call getopt_named( 'use_tsyganenko', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        simple_state_data%use_tsyganenko = floor(tmpinput)
+     end if
+     ! use_igrf
+     call getopt_named( 'use_igrf', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        simple_state_data%use_igrf = floor(tmpinput)
+     end if
+     call getopt_named( 'ngo_kp', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        simple_state_data%kp = tmpinput
+     end if
+     ! tsyganenko_Pdyn
+     call getopt_named( 'tsyganenko_Pdyn', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%Pdyn
+     end if
+     ! tsyganenko_Dst
+     call getopt_named( 'tsyganenko_Dst', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%Dst
+     end if
+     ! tsyganenko_ByIMF
+     call getopt_named( 'tsyganenko_ByIMF', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%ByIMF
+     end if
+     ! tsyganenko_BzIMF
+     call getopt_named( 'tsyganenko_BzIMF', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%BzIMF
+     end if
+     ! tsyganenko_W1
+     call getopt_named( 'tsyganenko_W1', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%W1
+     end if
+     ! tsyganenko_W2
+     call getopt_named( 'tsyganenko_W2', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%W2
+     end if
+     ! tsyganenko_W3
+     call getopt_named( 'tsyganenko_W3', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%W3
+     end if
+     ! tsyganenko_W4
+     call getopt_named( 'tsyganenko_W4', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%W4
+     end if
+     ! tsyganenko_W5
+     call getopt_named( 'tsyganenko_W5', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%W5
+     end if
+     ! tsyganenko_W6
+     call getopt_named( 'tsyganenko_W6', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%W6
+     end if
+
+     ! Marshall our data to the callback
+     ! associate a pointer to the state data provided by the user
+     simple_state_dataP%p => simple_state_data
+     ! marshall the data pointer to our function
+     sz = size(transfer(simple_state_dataP, data))
+     allocate(data(sz))
+     data = transfer(simple_state_dataP, data)
+     
+     ! ! Call the setup routine to open a source file
+     ! call ngo3dsetup(ngo3d_state_data, ngo_configfile)
+
+     print *, 'Ngo Model parameters:'
+     ! print *, '   ngo_configfile:   ', trim(ngo_configfile)
+     print *, '   yearday:          ', simple_state_data%itime(1)
+     print *, '   milliseconds_day: ', simple_state_data%itime(2)
+     print *, '   use_tsyganenko:   ', simple_state_data%use_tsyganenko
+     print *, '   use_igrf:         ', simple_state_data%use_igrf
+     print *, '   ngo_kp:           ', simple_state_data%kp
+     print *, '   tsyganenko_Pdyn:  ', simple_state_data%Pdyn
+     print *, '   tsyganenko_Dst:   ', simple_state_data%Dst
+     print *, '   tsyganenko_ByIMF: ', simple_state_data%ByIMF
+     print *, '   tsyganenko_BzIMF: ', simple_state_data%BzIMF
+     print *, '   tsyganenko_W1:    ', simple_state_data%W1
+     print *, '   tsyganenko_W2:    ', simple_state_data%W2
+     print *, '   tsyganenko_W3:    ', simple_state_data%W3
+     print *, '   tsyganenko_W4:    ', simple_state_data%W4
+     print *, '   tsyganenko_W5:    ', simple_state_data%W5
+     print *, '   tsyganenko_W6:    ', simple_state_data%W6
+     flush(OUTPUT_UNIT)
+
+
+
+
   end if
 
   open(unit=infile, file=inputraysfile, status="old")
@@ -783,6 +1041,18 @@ program raytracer_driver
              B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
              fixedstep, del, fscatteredinterp, data, raytracer_stopconditions)
+     elseif( modelnum == 5 ) then
+        call raytracer_run( &
+             pos,time,vprel,vgrel,n,&
+             B0, qs, ms, Ns, nus, stopcond, &
+             pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
+             fixedstep, del, fngo3d, data, raytracer_stopconditions)
+     elseif( modelnum == 6 ) then
+        call raytracer_run( &
+             pos,time,vprel,vgrel,n,&
+             B0, qs, ms, Ns, nus, stopcond, &
+             pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
+             fixedstep, del, fsimple, data, raytracer_stopconditions)
      end if
      ! Write the data to the output file
      do i=1,size(time,1),outputper

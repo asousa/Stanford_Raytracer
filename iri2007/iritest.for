@@ -12,18 +12,16 @@ c 2000.04 28/10/02 replace TAB/6 blanks, enforce 72/line (D. Simpson)
 c 2000.05 02/06/03 Ne(Te) only 300,400; foF1 and hmF1 output corr.
 c 2000.06 01/19/05 (.not.jf(20)) instead of (..jf(2)) (G. Schiralli)
 c 2005.01 05/06/06 included spread-F (jf(28)) and topside (jf(29)) options
-C 2007.00 05/18/07 Release of IRI-2007
-c 2007.02 10/31/08 outf(100) -> outf(500), numhei=numstp=500
-c 2007.03 02/12/09 added new D-region option (h=-3) 
+c 2007.00 05/18/07 Release of IRI-2007
 c
-      INTEGER           pad1(6),jdprof(77)
-      DIMENSION         outf(20,500),oar(50,500),jfi(6)
+      INTEGER           pad1,pad2,pad3
+      DIMENSION         outf(20,100),oar(50,100),jfi(6)
       LOGICAL		    jf(30)
       CHARACTER*2       timev(2)
       CHARACTER*3       uni(48),sopt
       CHARACTER*4       IMZ(8),MAP,xtex,coorv(2)
       CHARACTER*5       ITEXT(8)
-      CHARACTER*6       dopt,pna(48)
+      CHARACTER*6       pna(48)
       CHARACTER*8       bopt
       CHARACTER*9       topt,pname(6)
       CHARACTER*10      iopt
@@ -55,10 +53,11 @@ c
         print *,'(enter  0 for list of peak heights and densities)'
         print *,'(enter -1 for plasma frequencies, B0, M3000, ',
      &                        'valley, width and depth,)'
-        print *,'(enter -2 for 6 parameters of your choice)'
-        print *,'(enter -3 for D-region models at 60,65,..,110 km)'
+        print *,'(         F1 probability, equatorial vertical ',
+     &         'ion drift, and)'
+        print *,'(         foF2 storm/quiet ratio,)'
+        print *,'(         or 3 parameter of your choice)'
         read(5,*) hx
-
         print *,'upper height [km] for TEC integration (0 for no TEC)'
         read(5,*) htec_max
 
@@ -70,7 +69,7 @@ c
 
         print *,'Options: t(rue) or f(alse)'
         print *,'Standard: t,t,t,t,f,f,t,t,t,t,t,t,t,t,t,t,t,t,t,t,',
-     &                        't,t,f,t,t,t,t,t,f,f'
+     &                        'f,t,f,t,t,t,t,f,f,f'
         print *,'Enter 0 to use standard or 1 to enter your own'
         read(5,*) jchoice
           do i=1,30 
@@ -81,25 +80,24 @@ c          jf(2)=.false.				  ! no temperatures
 c          jf(3)=.false.				  ! no ion composition
           jf(5)=.false.               ! URSI foF2 model
           jf(6)=.false.               ! Newest ion composition model
-c          jf(21)=.true.			      ! ion drift computed
+          jf(21)=.false.			  ! no ion drift
           jf(23)=.false.              ! TTS Te model is standard
-c          jf(28)=.true.			      ! spread-F computed
+          jf(28)=.false.			  ! no spread-F
           jf(29)=.false.              ! New Topside options
           jf(30)=.false.              ! NeQuick topside
         else
           print *,'Compute Ne, T, Ni? (enter: t,t,t  if you want all)'
           read(5,*) jf(1),jf(2),jf(3)
         if(jf(1)) then 
-              print *,'LAY version: t=standard ver., f=LAY version.',
-     &              ' {standard:t}'
+              print *,'LAY version: t=standard ver., f=LAY version. {t}'
               read(5,*) jf(11)
-              print *,'Ne Topside: t=IRI-2001, f=new options {f}'
+              print *,'Ne Topside: t=IRI-2001, f=new options {t}'
               read(5,*) jf(29)
-              print *,'Ne Topside: t=IRI01_corrt, f=NeQuick {f}'
+              print *,'Ne Topside: t=IRI01_corrt, f=NeQuick {t}'
               read(5,*) jf(30)
               print *,'Ne Topside: t=F10.7<188, f=unlimited {t}'
               read(5,*) jf(7)
-              print *,'foF2 model: t=CCIR, f=URSI-88 {f}'
+              print *,'foF2 model: t=CCIR, f=URSI-88 {standard:f}'
               read(5,*) jf(5)
               print *,'foF2: t=with storm model, f=without {t}'
               read(5,*) jf(26)
@@ -128,7 +126,7 @@ c          jf(28)=.true.			      ! spread-F computed
               read(5,*) jf(15)
               print *,'E peak height: t=model, f=user input {t}'
               read(5,*) jf(16)
-              print *,'D: t=IRI-95, f= FPT-00 {t}'
+              print *,'D: t=old model, f=new options {t}'
               read(5,*) jf(24)
           endif
         if(jf(2)) then
@@ -163,33 +161,25 @@ c          jf(28)=.true.			      ! spread-F computed
             print *,'Message output unit: t=(UNIT=6), f=(UNIT=12). {t}'
             read(5,*) jf(12)
        endif
-       if(hx.lt.-2) jf(24)=.false.
-c option to enter six additional parameters 
+
+c option to enter three additional parameters 
 c
-      if(hx.lt.-1.and.hx.gt.-3) then
-        print *,'6 Parameters of your choice (number:1-48)'
+      if(hx.lt.0) then
+        print *,'Three additional output parameters (number:1-48)'
         print *,(pna(j),j=1,10)
         print *,(pna(j),j=11,20)
         print *,(pna(j),j=21,30)
         print *,(pna(j),j=31,40)
         print *,(pna(j),j=41,48)
-        print *,'or 0,0,0,0,0,0 for default:'
-        print *,'      spread-F probability [48]'
-        print *,'      equatorial vertical ion drift [44]'
-        print *,'      foF2_storm/foF2_quiet [45]'
-        print *,'      F1 probability without L-condition [46]'
-        print *,'      solar zenith angle [23]' 
-        print *,'      modified dip latitude [27]' 
-        read(5,*) (pad1(j),j=1,6)
-        if(pad1(1).eq.0) then
-        	pad1(1)=48     ! spread-F probability
-            pad1(2)=44     ! equatorial vertical ion drift
+        print *,'or 0,0,0 for default (F1 probability[40], equ. vert. ',
+     &   'ion drift[44], foF2_st/_quiet[45])'
+        read(5,*) pad1,pad2,pad3
+        if(pad1.eq.0) pad1=40     ! F1 probability
+        if(pad2.eq.0) then
+             pad2=44              ! equatorial vertical ion drift
              jf(21)=.true.
-            pad1(3)=45     ! fof2_storm/foF2_quiet
-            pad1(4)=46     ! F1 probability (no L-condition)
-            pad1(5)=23     ! solar zenith angle
-            pad1(6)=27     ! modified dip latitude
-            endif
+             endif
+        if(pad3.eq.0) pad3=45     ! fof2_storm/foF2_quiet
       endif
        
 c option to enter measured values for NmF2, hmF2, NmF1, hmF1, NmE, hmE,
@@ -294,7 +284,7 @@ c
 
         num1=(vend-vbeg)/vstp+1
         numstp=iabs(num1)
-        if(numstp.GT.500) numstp=500
+        if(numstp.GT.100) numstp=100
 
         map='URSI'
         if(jf(5)) map='CCIR'
@@ -302,11 +292,8 @@ c
         bopt='Gulyaeva'
         if(jf(4)) bopt='B0-Table'
 
-        iopt='DS95+TTS05'
-        if(jf(6)) iopt='DS78+DY85 '
-
-        dopt='IRI-95'
-        if(jf(24)) dopt='FPT-00'
+        iopt='DS95&TTS04'
+        if(jf(6)) iopt='DS78&DY85 '
 
         sopt='off'
         if(jf(26)) sopt='on '
@@ -351,7 +338,7 @@ c
             endif
                 if(jf(8)) write(7,301) map
                 if(jf(9)) write(7,303)
-                write(7,3081) dopt
+                if(.not.jf(24)) write(7,3081)
                 write(7,309) bopt
                 write(7,3291) sopt
                 write(7,3295) f1opt
@@ -395,12 +382,20 @@ c
 
 
         if(htec_max.gt.50.0) write(7,3914) htec_max
+        if(pad1.eq.44.or.pad2.eq.44.or.pad3.eq.44) write(7,3915)
+        if(pad1.eq.40.or.pad2.eq.40.or.pad3.eq.40) write(7,4915)
+        if(pad1.eq.45.or.pad2.eq.45.or.pad3.eq.45) write(7,4916)
+        if(pad1.eq.48.or.pad2.eq.48.or.pad3.eq.48) write(7,4196)
 
 3991    format(///'DATE(yyyy/-ddd or mmdd/hh.h):',I4,'/',I4,'/',F4.1,
      &      A2,2X,A4,' Lat/Long=',F5.1,'/',F6.1/)
 3914    format(/'TEC [1.E16 m-2] is obtained by numerical integration',
      &     ' in 1km steps'/'  from 50 to ',f6.1,' km.  t is the',
      &     ' percentage of TEC above the F peak.') 
+3915    format(/'vdrft: equatorial vertical F-region drift.') 
+4915    format(/'F1_pb: F1-layer occurrence probability')
+4916    format(/'foF2r: foF2_storm/foF2_quiet')
+4196    format(/'sp_F: spread-F occurrence probability')
 3916    format(/'M3000F2: Propagation factor related to hmF2'/
      &     'B0: bottomside thickness parameter.') 
 301     format(A4,' maps are used for the F2 peak density (NmF2)')
@@ -412,7 +407,7 @@ c
      &          ' point:')
 309     format(A8,' option is used for the bottomside thickness ',
      &          'parameter B0')
-3081    format(A6,' option is used for D-region')
+3081    format('Special D-region output with all options')
 329     format(A10,' option is used for ion composition')
 3291    format('The foF2 STORM model is turned ',A3)
 3292    format(A9,' option is used for the electron temperature')
@@ -449,52 +444,35 @@ c
         IF(IVAR.NE.1) THEN
                 IF(HX.LT.1.0) PIKTAB=1
                 IF(HX.LT.0.0) PIKTAB=2
-                IF(HX.LT.-1.0) PIKTAB=3
                 ENDIF
-        IF(HX.LT.-2.0) PIKTAB=4
+        if(.not.jf(24)) piktab=3
 
-        IF(PIKTAB.EQ.4) WRITE(7,8199) 
-        IF(PIKTAB.EQ.3) WRITE(7,8191) ITEXT(IVAR),
-     &    (pna(pad1(j)),j=1,6),xtex,(uni(pad1(j)),j=1,6)
-        IF(PIKTAB.EQ.2) WRITE(7,8194) ITEXT(IVAR),xtex
+        IF(PIKTAB.EQ.3) WRITE(7,8199) ITEXT(IVAR),xtex
+        IF(PIKTAB.EQ.2) WRITE(7,8194) ITEXT(IVAR),pna(pad1),
+     &    pna(pad2),pna(pad3),xtex,uni(pad1),uni(pad2),uni(pad3)
         IF(PIKTAB.EQ.1) WRITE(7,8192) ITEXT(IVAR),xtex
         IF(PIKTAB.EQ.0) WRITE(7,8193) ITEXT(IVAR),xtex
 
-8191  FORMAT(/'-'/2X,A5,6A10/3X,A4,6A10)
 8192  FORMAT(/'-'/2X,A5,6X,'PEAK ALTITUDES IN KM',8X,'PEAK DEN',
      &  'SITIES IN cm-3  TEC top/%'/3X,A4,'    hmF2  hmF1   hmE   ',
      &  'hmD      NmF2   NmF1    NmE    NmD  1E16m-2')
-8194  FORMAT(/'-'/2X,A5,3X,'M3000  B0',5X,'E-VALLEY',7X,'PLASMA ',
-     & 'FREQUENCIES / MHz',4X,'TEC  Ttop'/3X,A4,10X,'km    W/km ',
-     &  ' Depth',5X,'foF2   foF1   foE   foD   1E16m-2  %')
+8194  FORMAT(/'-'/2X,A5,15X,'E-VALLEY',3X,'PLAS FREQ/',
+     & ' MHz  ',A6,3X,A6,3X,A6/3X,A4,' M3000 B0/km  W/km Depth ',
+     &  ' foF2 foF1  foE   ',A3,6X,A3,6X,A3)
 8193  FORMAT(/'-'/1X,A5,' ELECTRON DENSITY   TEMPERATURES ',
      &  8X,'ION PERCENTAGES/%',5x,'1E16m-2'/2X,A4,' Ne/cm-3 Ne/NmF2',
      &  ' Tn/K  Ti/K  Te/K  O+  N+  H+ He+ O2+ NO+ Clust TEC t/%')
-8199  FORMAT(/'-'/1X,'h',8X,' D-REGION ELECTRON DENSITY IN CM-3'/
-     &  1X,'km',18X,'DRS-95: Stratos Warming/Winter Anomaly'/5X,
-     &  'IRI-07',4x,'FIRI  SW/WA=0/0  0.5/0   1/0    0/0.5    0/1')
+8199  FORMAT(/'-'/1X,A5,12X,' D-REGION ELECTRON DENSITY IN CM-3'/
+     &  2X,A4,7x,'Mechtley',3x,'Friedrich',7X,'Danilov et al. 1995'/
+     &  13x,'-Bilitza',4X,'-Torkar',5x,'standard',2x,'major SW',2x,
+     &  'strong WA')
 
-		if(piktab.eq.4) then
-            do 2591 lix=1,77 
-            	jdprof(lix)=-1
-            	dichte=outf(14,lix)
-2591            if(dichte.gt.0.) jdprof(lix)=int(dichte/1.e6+0.5)
-			do 2592 lix=1,11
-				ihtemp=55+lix*5
-            	WRITE(7,3810) ihtemp,jdprof(lix),jdprof(lix+11),
-     &  			jdprof(lix+22),jdprof(lix+33),jdprof(lix+44),
-     &  			jdprof(lix+55),jdprof(lix+66)
-2592		    continue			
-3810    FORMAT(I3,7I8)
-			goto 2357
-		 	endif
-		
         xcor=vbeg
 
         do 1234 li=1,numstp
 
 c
-c special output: peak densities and altitudes PIKTAB=1
+c special output: peak densities and altitudes
 c
 
       IF(PIKTAB.eq.1) THEN
@@ -514,47 +492,51 @@ c
         endif
         WRITE(7,3910) XCOR,oar(2,li),oar(4,li),oar(6,li),oar(8,li),
      &    iyp1,iyp2,iyp3,iyp4,tec,itopp
-3910    FORMAT(F7.1,2X,4F6.1,1X,I9,3I7,1X,F6.2,I4)
+3910    FORMAT(F7.1,2X,4F6.1,1X,I9,3I7,1x,f6.2,i4)
         GOTO 1234
       ENDIF
-c
-c special output: plasma frequencies and altitudes  PIKTAB=2
-c
 
       IF(PIKTAB.eq.2) THEN
-        if(oar(3,li).lt.1.) oar(4,li)=0.
-        fyp1=SQRT(oar(1,li)/1.24E10)
-        fyp2=0
-        if(oar(3,li).gt.0.0) fyp2=SQRT(oar(3,li)/1.24E10)
-        fyp3=SQRT(oar(5,li)/1.24E10)
-        fyp4=SQRT(oar(7,li)/1.24E10)
-            tec=oar(37,li)
-        if(tec.gt.0.0) then
-            tec=tec/1.e16
-            itopp=int(oar(38,li)+.5)
-        else
-            tec=-1.0
-            itopp=-1
-        endif
-        wvalley=oar(12,li)-oar(6,li)
-        dvalley=oar(11,li)/oar(5,li)
-        WRITE(7,3950) XCOR,oar(36,li),oar(10,li),wvalley,dvalley,
-     &    fyp1,fyp2,fyp3,fyp4,tec,itopp
-3950    FORMAT(F7.1,2X,F6.4,2F6.1,F8.4,1X,4F7.3,F7.2,I4)
-        GOTO 1234
-      ENDIF
-c
-c special output: 6 parameters of your choice
-c
-
-      IF(PIKTAB.eq.3) THEN
+        yp1=sqrt(oar(1,li)/1.24e10)
+        yp2=0.0
+        if(oar(3,li).gt.0.0) yp2=sqrt(oar(3,li)/1.24e10)
+        yp3=sqrt(oar(5,li)/1.24e10)
 c        if(pad1.eq.45.and.oar(pad1,li).le.0.0) oar(pad1,li)=-1.
 c        if(pad2.eq.45.and.oar(pad2,li).le.0.0) oar(pad2,li)=-1.
 c        if(pad3.eq.45.and.oar(pad3,li).le.0.0) oar(pad3,li)=-1.
-        WRITE(7,3919) XCOR,oar(pad1(1),li),oar(pad1(2),li),
-     &        oar(pad1(3),li),oar(pad1(4),li),oar(pad1(5),li),
-     &        oar(pad1(6),li)
-3919    FORMAT(F7.1,6(1X,1PE9.2))
+        WRITE(7,3919) XCOR,oar(36,li),oar(10,li),oar(12,li)-oar(6,li),
+     &    oar(11,li)/oar(5,li),yp1,yp2,yp3,oar(pad1,li),oar(pad2,li),
+     &    oar(pad3,li)
+3919    FORMAT(F7.1,2X,f4.2,1x,f5.1,1x,f5.1,1x,f5.3,F6.2,2F5.2,
+     &    1PE9.2,1PE9.2,1PE9.2)
+        GOTO 1234
+      ENDIF
+
+c special output for D-region options
+c
+      IF(PIKTAB.eq.3) THEN
+        hxx=hx
+        if(ivar.ne.1.and.hx.lt.20.) hxx=85.
+        ip1=int(outf(1,li)/1.e6+.5)
+        ip2=int(outf(13,li)/1.e6+.5)
+        if(ivar.eq.1) hxx=xcor
+        ihx=int((hxx-60)/5.)+1
+        ixne=-1
+        ixn1=-1
+        ixn2=-1
+        if(ihx.gt.0.and.ihx.lt.7) then
+              hihx=60+(ihx-1)*5
+              ixne=int((outf(14,ihx)+(outf(14,ihx+1)-outf(14,ihx))/
+     &                   5*(hxx-hihx))/1.e6+.5)
+              ih1=ihx+7
+              ixn1=int((outf(14,ih1)+(outf(14,ih1+1)-outf(14,ih1))/
+     &                   5*(hxx-hihx))/1.e6+.5)
+              ih2=ihx+14
+              ixn2=int((outf(14,ih2)+(outf(14,ih2+1)-outf(14,ih2))/
+     &                   5*(hxx-hihx))/1.e6+.5)
+              endif
+        WRITE(7,3819) XCOR,ip1,ip2,ixne,ixn1,ixn2
+3819    FORMAT(F7.1,2X,2i10,5X,3I10)
         GOTO 1234
       ENDIF
 c
@@ -602,7 +584,7 @@ c
 
 1234    xcor=xcor+vstp
 
-2357    print *,'Enter 0 to exit or 1 to generate another profile?' 
+        print *,'Enter 0 to exit or 1 to generate another profile?' 
         read(5,*) icontinue
         if (icontinue.gt.0) goto 1
 
