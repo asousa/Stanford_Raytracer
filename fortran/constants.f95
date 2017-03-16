@@ -9,5 +9,6 @@ real(kind=DP), parameter :: R_E = 6371.2e3_DP
 real(kind=DP), parameter :: D2R = PI / 180.0_DP
 real(kind=DP), parameter :: R2D = 180.0_DP / PI
 real(kind=DP), parameter :: VERSION = 1.17_DP
+real(kind=DP), parameter :: REkm = R_E*1e-3_DP
 
 end module constants

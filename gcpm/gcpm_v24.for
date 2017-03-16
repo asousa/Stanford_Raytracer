@@ -270,27 +270,27 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 !  function is also used to transition between the IRI and the other exterior
 !  models.
 !
-	! if(al.lt.tranlow) then
+	if(al.lt.tranlow) then
 !  execute this section if we are equatorward of the polar cap
 	  edensity=ne_iri_ps_trough(r,al,alatr,amlt,akp,itime)
        ! edensity = 0.0_DP
 !     print *,'low n:',edensity
-	! else
-! 	  if(al.le.tranhigh) then
-! !  execute this section if we are in the transition region between
-! !  the trough and polar cap regions
-! 	    ps_edensity=ne_iri_ps_trough(r,al,alatr,amlt,akp,itime)
-! 	    cap_edensity=ne_iri_cap(r,alatr,amlt,itime)
-! 	    switch=switchon(al,alcrit,altrans)
-! 	    edensity=ps_edensity*(1.0-switch)+
-!      &		cap_edensity*switch
-! 	! print *,'mid n:',r,ps_edensity,cap_edensity,edensity,switch
-! 	  else
-!  execute this section if we are polarward of the trough
-	    ! edensity=ne_iri_cap(r,alatr,amlt,itime)
-!     print *,'polar n:',edensity
-	  ! end if
-	! end if
+	else
+	  if(al.le.tranhigh) then
+!  execute this section if we are in the transition region between
+!  the trough and polar cap regions
+	    ps_edensity=ne_iri_ps_trough(r,al,alatr,amlt,akp,itime)
+	    cap_edensity=ne_iri_cap(r,alatr,amlt,itime)
+	    switch=switchon(al,alcrit,altrans)
+	    edensity=ps_edensity*(1.0-switch)+
+     &		cap_edensity*switch
+	! print *,'mid n:',r,ps_edensity,cap_edensity,edensity,switch
+	  else
+ ! execute this section if we are polarward of the trough
+	    edensity=ne_iri_cap(r,alatr,amlt,itime)
+    ! print *,'polar n:',edensity
+	  end if
+	end if
 !
 !  convert back to #particles per cm^3
 	den=edensity/1.0e6_DP 
