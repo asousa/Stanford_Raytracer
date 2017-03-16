@@ -652,7 +652,9 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
     real(kind=DP) :: al, aheight
     real(kind=DP) :: switch_ps2trough, switch_iono2ps
     real(kind=DP) :: ne_merge_trough, switch_iono2psOrTrough, ne_merge_value
-    real(kind=DP) :: switch_cap2trough
+    real(kind=DP) :: switch_trough2cap_lat, switch_trough2cap_rad, eqh
+
+    real(kind=DP) iono_merge_altitude, ne_trough_val
 
     ! a6 = -0.79
     ! a7 = 5.208
@@ -744,8 +746,103 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
       tranhigh=cap_edge_L + altrans
       ! end if
       
-      ! Combined plasmasphere + trough density
-      ne_eq_ps = main_ps_density(L, a8, a9, iyear, doy, akp, amlt, lamr, r)
+      ! ! Combined plasmasphere + trough density
+      ! ne_eq_ps = main_ps_density(L, a8, a9, iyear, doy, akp, amlt, lamr, r)
+
+      ! find the transition point between the two models
+      ! (either the plasmapause, or the point at which
+      ! the two curves cross)
+      zl = check_crossing(a8, amlt, akp, iyear, doy)
+
+
+
+      ! ------- Inner plasmasphere profile -------------
+      ne_eq_ps = ne_ps(L, a8, a9, iyear, doy, akp)
+
+      ! Altitude where we transition from iono to either ps or trough model.
+      ! GCPM does this by calculating the gradient of IRI wrt altitude,
+      ! but since we're not using IRI I'm just picking this to look nice.
+      ! Should smoothly vary with latitude.
+      ! iono_merge_altitude = iono_merge_altitude_equator*(1.0 + 10*abs(lamr)/PI)
+
+ 
+      iono_merge_altitude = iono_merge_altitude_equator
+      ! ------- Ionosphere contribution to main ps -----
+      ! Find latitude at ionosphere:
+      iono_lam = acos(sqrt((REkm+ iono_peak_altitude)/(L*REkm)))*R2D
+      ! iono_merge_lam = acos(sqrt((R_E + iono_merge_altitude)/(L*R_E)))*R2D
+      ne_iono_source = ne_iono(lamr*R2D, amlt, 350.0_DP)
+      ! Get plasmasphere value at ionosphere-plasmasphere merge point:
+      iono_peak_L  = (iono_peak_altitude +  REkm)/(REkm)/(cos(lamr)**2)
+      iono_merge_L = (iono_merge_altitude + REkm)/(REkm)/(cos(lamr)**2)
+      ne_merge_value = ne_ps(iono_merge_L, a8, a9, iyear, doy, akp)
+      
+      ! Slope (in log space) of line between iono and ps:      
+      diono = (log10(ne_merge_value) - log10(ne_iono_source))/(iono_merge_L - iono_peak_L)
+      ne_eq_iono = ne_iono_source*min(1.0_DP,10.0_DP**(diono*(L - iono_peak_L)))
+      switch_iono2ps = 1.0 - switch(L, iono_merge_L , iono_merge_L/2.0)
+      ne_eq_ps = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_ps
+
+
+
+      ! ------- Trough (outer plasmasphere) profile -------  
+      ne_eq_trough = ne_trough(L, amlt, akp)
+
+      ! ------- Ionosphere contribution to trough ---------
+
+      ne_merge_value = ne_trough(iono_merge_L, amlt, akp)
+      diono = (log10(ne_merge_value) - log10(ne_iono_source))/(iono_merge_L - iono_peak_L)
+      ne_eq_iono = ne_iono_source*min(1.0_DP,10.0_DP**(diono*(L - iono_peak_L)))
+      ne_eq_trough = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_trough
+
+      switch_trough2cap_lat = switch(abs(lam), 20.0_DP, 10.0_DP)
+      ne_trough_val = ne_eq_trough*(1.0 -switch_trough2cap_lat) + (switch_trough2cap_lat)*ne_polar_cap
+
+
+
+      ! switch_trough2cap_lat = switch(abs(lam), 30.0_DP, 10.0_DP)
+      ! switch_trough2cap_rad = switch(r - REkm, (L - 1.0)*REkm, REkm)
+      ! ne_eq_trough = ne_eq_trough*(1.0 - switch_trough2cap_lat*switch_trough2cap_rad) + &
+      !         &(switch_trough2cap_lat*switch_trough2cap_rad)*ne_polar_cap
+
+      ! ------ Fade trough to polar cap for higher latitudes:
+
+      ! eqh = (L - 1.0)*REkm ! Equatorial altitude
+      ! ! switch_cap = switch(abs(r - REkm), 350.0 + (eqh - 350.0)/2.0, (eqh - 350.0)/2.0)
+
+      ! ! switch_trough2cap_lat = switch(L, a8, 1.0_DP)
+      ! switch_trough2cap_rad = switch(r, eqh, REkm)
+
+
+      switch_ps2trough = switch(L, zl, 0.6_DP) ! sets plasmapause slope...
+
+      ! switch_cap = switch_trough2cap_rad*switch_ps2trough
+
+      ! Plasmasphere, trough, cap (pre-cap threshold)
+      ce =  ne_eq_ps*(1.0 - switch_ps2trough) + &
+            &switch_ps2trough*ne_trough_val
+
+
+      ce = ne_polar_cap
+      ! ! Toss the cap in
+      ! switch_cap = switch(L, cap_edge_L, altrans)
+      ! ce = ce*(1.0 - switch_cap) + switch_cap*ne_polar_cap
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     
       ! ! ------- Inner plasmasphere profile -------------
@@ -784,12 +881,8 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
 
       ! switch_iono2ps = 1.0 - switch(r, iono_merge_altitude + REkm , iono_merge_altitude/2.0_DP)
 
-      switch_cap = switch(L, cap_edge_L, altrans)
-      ! ! switch_cap = switch(L, max(a8, cap_edge_L), altrans)
-
-      ! ce = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_ps
-
-      ce = ne_eq_ps*(1.0 - switch_cap) + switch_cap*ne_polar_cap
+      ! switch_cap = switch(L, cap_edge_L, altrans)
+      ! ce = ne_eq_ps*(1.0 - switch_cap) + switch_cap*ne_polar_cap
 
 
       ! if (L.lt.a8) then
