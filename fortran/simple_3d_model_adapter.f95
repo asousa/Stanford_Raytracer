@@ -66,6 +66,12 @@ module simple_3d_model_adapter
      integer :: fixed_MLT
      real(kind=DP) :: MLT
 
+     ! ! Which sections to include:
+     ! integer :: do_cap
+     ! integer :: do_trough
+     ! integer :: do_ps
+     ! integer :: do_iono
+
   end type simpleStateData
   ! Pointer container type.  This is the data that is actually marshalled.
   type :: simpleStateDataP 
@@ -76,15 +82,19 @@ module simple_3d_model_adapter
   real(kind=SP) :: PSI
   COMMON /GEOPACK1/ PSI
 
-  real(kind=DP), parameter :: iono_peak_altitude = 300.0 ! altitude of f2 peak
-  real(kind=DP), parameter :: iono_merge_altitude_equator = 2000.0 ! Altitude of merger w/ ps
-  real(kind=DP), parameter :: altrans = 2.0 ! L-shell transition width into cap region
+  real(kind=DP), parameter :: iono_peak_altitude = 350.0 ! altitude of f2 peak
+  real(kind=DP), parameter :: iono_merge_radius  = 10000.0 ! Radius in Km of iono - ps transition
+  real(kind=DP), parameter :: altrans = 10.0 ! L-shell transition width into cap region
   real(kind=DP), parameter :: rz12= 0.0  ! 13-month sunspot number (~0 for 2010)
-  real(kind=DP), parameter :: f107 = 0.0 ! F10.7 (I'm lazy and haven't looked it up yet)
-
+  real(kind=DP), parameter :: f107 = 70.0 ! F10.7 (I'm lazy and haven't looked it up yet)
+  integer(kind=DP), parameter :: do_cap = 0
+  integer(kind=DP), parameter :: do_trough = 1
+  integer(kind=DP), parameter :: do_ps = 1
+  integer(kind=DP), parameter :: do_iono = 1
   ! Module globals to avoid recalculating the auroral oval. Sure, why not.
   real(kind=DP) :: oldmlt = -1.0
   real(kind=DP) :: oldkp  = -1.0
+
 
 contains
 
@@ -98,7 +108,7 @@ contains
 
     a6 = -0.79
     a7 = 5.208
-    rz12= 0.0  ! 13-month sunspot number (~0 for 2010)
+    ! rz12= 0.0  ! 13-month sunspot number (~0 for 2010)
 
     ! ---------- Carpenter / Anderson plasmasphere -------------
     h = (1.0_DP + (L/a8)**(2.0_DP*(a9 - 1)))**(-a9/(a9 - 1.0_DP))
@@ -127,7 +137,8 @@ contains
     real(kind=DP) :: down_time, del, center, diff
     real(kind=DP) :: aminden, width, denmin, dengrow
     real(kind=DP) :: sdel, shift, switch0, switch1, switch2, switch3
-    real(kind=DP) :: dendamp, geosync_trough
+    real(kind=DP) :: dendamp, geosync_trough, switch_trough2cap, ne_eq_trough
+
 
     
     !  compute MLT where trough density peaks assuming constant Kp
@@ -176,9 +187,17 @@ contains
     ! scale density from trough density at geosynchronous orbit
     ! to L-shell of interest "l" using a power law of -4.5 in L
     !     =ne_trough[at L=6.6]*al**(-4.5)/6.6**(-4.5)
-    ne_trough=geosync_trough*L**(-4.5_DP)/2.0514092e-4_DP
+    ne_eq_trough=geosync_trough*L**(-4.5_DP)/2.0514092e-4_DP
 
-    ! print *,L, amlt, ne_trough
+
+
+    ! ! Blend into the cap model for higher latitudes
+    ! switch_trough2cap = switch(abs(lam), 20.0_DP, 10.0_DP)
+    ! ne_trough = ne_eq_trough*(1.0 -switch_trough2cap) + (switch_trough2cap)*ne_polar_cap
+
+    ! No latitude variation
+    ne_trough = ne_eq_trough
+    
 
   end function ne_trough
 
@@ -225,114 +244,118 @@ contains
 
 
 
-  function ne_iono(lat, mlt, alt)
-    ! A very simple model of ionosphere electron density.
-    ! Uses a multiple gaussian curve which was fit to IRI2012 model
-    ! data at the F2 peak, for dayside (MLT 12) and nightside (MLT 0),
-    ! for geomagnetic latitudes between -90 and 90 degrees.
-    ! Uses a sigmoid function to smooth between day and night.
-    ! Returns electron density in cm^-3
+  ! function ne_iono(lat, mlt, alt)
+  !   ! A very simple model of ionosphere electron density.
+  !   ! Uses a multiple gaussian curve which was fit to IRI2012 model
+  !   ! data at the F2 peak, for dayside (MLT 12) and nightside (MLT 0),
+  !   ! for geomagnetic latitudes between -90 and 90 degrees.
+  !   ! Uses a sigmoid function to smooth between day and night.
+  !   ! Returns electron density in cm^-3
 
-    real(kind=DP) :: lat, mlt, alt
-    ! real(kind=DP), parameter :: coef_nite(11), coef_day(11)
-    real(kind=DP) :: day, nite
-    real(kind=DP) :: ne_iono
-    real(kind=DP), dimension(8) :: coef_nite, coef_day
-    real(kind=DP), parameter :: mltslope = 0.1_DP ! per-hour rate of change
-    real(kind=DP) :: s, s1, s2
+  !   real(kind=DP) :: lat, mlt, alt
+  !   ! real(kind=DP), parameter :: coef_nite(11), coef_day(11)
+  !   real(kind=DP) :: day, nite
+  !   real(kind=DP) :: ne_iono
+  !   real(kind=DP), dimension(8) :: coef_nite, coef_day
+  !   real(kind=DP), parameter :: mltslope = 0.1_DP ! per-hour rate of change
+  !   real(kind=DP) :: s, s1, s2
     
 
-    coef_day = (/8.04375253e+05,  -1.98290193e+01,   9.84561228e+00,&
-                &7.69068420e+05, 1.14717628e+01, 4.07735746e+01, &
-                &1.85437238e+05,-1.85520036e+03/)
-    coef_nite =(/-1.32546822e+05, -4.06231821e+01, 2.94414728e+01, &
-                &1.06125847e+05, 1.13202857e+01,   2.21196102e+01, &
-                &1.64651016e+05,  -1.57715123e+03/)
+  !   coef_day = (/8.04375253e+05,  -1.98290193e+01,   9.84561228e+00,&
+  !               &7.69068420e+05, 1.14717628e+01, 4.07735746e+01, &
+  !               &1.85437238e+05,-1.85520036e+03/)
+  !   coef_nite =(/-1.32546822e+05, -4.06231821e+01, 2.94414728e+01, &
+  !               &1.06125847e+05, 1.13202857e+01,   2.21196102e+01, &
+  !               &1.64651016e+05,  -1.57715123e+03/)
 
-    day = coef_day(1)*exp(-abs((lat - coef_day(2))/coef_day(3))**2) +&
-         &coef_day(4)*exp(-abs((lat - coef_day(5))/coef_day(6))**2) +&
-         &coef_day(7) + coef_day(8)*lat
+  !   day = coef_day(1)*exp(-abs((lat - coef_day(2))/coef_day(3))**2) +&
+  !        &coef_day(4)*exp(-abs((lat - coef_day(5))/coef_day(6))**2) +&
+  !        &coef_day(7) + coef_day(8)*lat
 
-    nite = coef_nite(1)*exp(-abs((lat - coef_nite(2))/coef_nite(3))**2) +&
-          &coef_nite(4)*exp(-abs((lat - coef_nite(5))/coef_nite(6))**2) +&
-          &coef_nite(7) + coef_nite(8)*lat
+  !   nite = coef_nite(1)*exp(-abs((lat - coef_nite(2))/coef_nite(3))**2) +&
+  !         &coef_nite(4)*exp(-abs((lat - coef_nite(5))/coef_nite(6))**2) +&
+  !         &coef_nite(7) + coef_nite(8)*lat
 
-    s1 = 1.0/(1.0 + exp((mod(mlt, 24.0_DP) - 18.0_DP)/mltslope))
-    s2 = 1.0/(1.0 + exp((mod(mlt, 24.0_DP) - 6.0_DP)/mltslope))
-    s = s1 - s2
-    ne_iono = s*day + (1.0 - s)*nite
-    return
-  end function ne_iono
-
-
-
-  ! function ne_iono(lat, mlt, alt)
-  ! !   ! A very simple model of ionosphere electron density.
-  ! !   ! Uses a multiple gaussian curve which was fit to IRI2012 model
-  ! !   ! at 1500 km, and a density gradient which was calculated as the
-  ! !   ! slope in log space bewteen density at 1500km, and the density
-  ! !   ! at the F2 peak (~350 km +- 100km or so).
-  ! !   ! Uses the fitted gradient to extrapolate densities over altitudes.
-  ! !   ! Uses a sigmoid function to smooth between day and night.
-  ! !   ! Returns electron density in cm^-3.
-  !   real(kind=DP) :: lat, alt, mlt 
-  !   real(kind=DP) :: dens_day, dens_nite, grad_day, grad_nite
-  !   real(kind=DP) :: s, s1, s2, ne_iono
-  !   integer(kind=DP) :: i
-
-  !   real(kind=DP), parameter :: mltslope = 0.1_DP ! per-hour rate of change
-  !   real(kind=DP), parameter :: dens_coef_day(9) =(/&
-  !                 &9.23183e+03,-2.23382e+01,1.49365e+01,&
-  !                 &1.70763e+04,2.63301e+01,3.75599e+01,&
-  !                 &9.15522e+03,-3.31022e+01,-6.13435e-01/)
-  !   real(kind=DP), parameter :: grad_coef_day(11) = (/&
-  !                 &2.31678e-22,1.17475e-20,-5.20743e-18,&
-  !                 &-1.98686e-16,4.44845e-14,1.19067e-12,&
-  !                 &-1.85079e-10,-3.38517e-09,3.84124e-07,&
-  !                 &3.35202e-06,-1.84164e-03/)
-  !   real(kind=DP), parameter :: dens_coef_nite(9) =(/&
-  !                 &6.99184e+03,-3.11663e+00,1.30464e+01,&
-  !                 &8.58528e+03,2.19513e+01,1.56983e+01,&
-  !                 &2.89385e+03,-1.87291e+01,3.21094e-01/)
-  !   real(kind=DP), parameter :: grad_coef_nite(11) = (/&
-  !                 &2.39859e-23,-1.28908e-20,-1.77123e-20,&
-  !                 &2.32415e-16,-4.42548e-15,-1.46548e-12,&
-  !                 &2.84474e-11,3.59593e-09,-2.62414e-08,&
-  !                 &-2.70750e-06,-1.63765e-03/)
-
-  !   ! Get densities at 1500 km altitude
-  !   dens_day = dens_coef_day(1)*exp(-abs((lat - dens_coef_day(2))/dens_coef_day(3))**2) +&
-  !             &dens_coef_day(4)*exp(-abs((lat - dens_coef_day(5))/dens_coef_day(6))**2) +&
-  !             &dens_coef_day(7) + dens_coef_day(8)*lat + dens_coef_day(9)*lat**2
-
-  !   dens_nite = dens_coef_nite(1)*exp(-abs((lat - dens_coef_nite(2))/dens_coef_nite(3))**2) +&
-  !              &dens_coef_nite(4)*exp(-abs((lat - dens_coef_nite(5))/dens_coef_nite(6))**2) +&
-  !              &dens_coef_nite(7) + dens_coef_nite(8)*lat + dens_coef_nite(9)*lat**2
-
-  !   ! Get gradients (slope in log space to the F2 peak)
-  !   grad_day  = 0
-  !   grad_nite = 0
-  !   do i=1,11
-  !     grad_day  = grad_day +  grad_coef_day(i)*lat**(11-i)
-  !     grad_nite = grad_nite + grad_coef_nite(i)*lat**(11-i)
-  !   end do
-
-  !   ! Extrapolate in log space to the desired altitude
-  !   dens_day  = dens_day*10.0_DP**(grad_day*(alt - 1500.0_DP))
-  !   dens_nite = dens_nite*10.0_DP**(grad_nite*(alt - 1500.0_DP))
-
-  !   ! Fade between day and night
   !   s1 = 1.0/(1.0 + exp((mod(mlt, 24.0_DP) - 18.0_DP)/mltslope))
   !   s2 = 1.0/(1.0 + exp((mod(mlt, 24.0_DP) - 6.0_DP)/mltslope))
   !   s = s1 - s2
-
-  !   ! We're done!
-  !   ne_iono = s*dens_day + (1.0 - s)*dens_nite
-
-
-  !   print *,lat, mlt, alt, dens_day, grad_day, dens_nite, grad_nite, ne_iono
+  !   ne_iono = s*day + (1.0 - s)*nite
   !   return
   ! end function ne_iono
+
+
+
+  function ne_iono(lat, mlt, alt)
+  !   ! A very simple model of ionosphere electron density.
+  !   ! Uses a multiple gaussian curve which was fit to IRI2012 model
+  !   ! at 1500 km, and a density gradient which was calculated as the
+  !   ! slope in log space bewteen density at 1500km, and the density
+  !   ! at the F2 peak (~350 km +- 100km or so).
+  !   ! Uses the fitted gradient to extrapolate densities over altitudes.
+  !   ! Uses a sigmoid function to smooth between day and night.
+  !   ! Returns electron density in cm^-3.
+    real(kind=DP) :: lat, alt, mlt 
+    real(kind=DP) :: dens_day, dens_nite, grad_day, grad_nite
+    real(kind=DP) :: s, s1, s2, ne_iono
+    integer(kind=DP) :: i
+
+    real(kind=DP), parameter :: mltslope = 0.1_DP ! per-hour rate of change
+    real(kind=DP), parameter :: dens_coef_day(9) =(/&
+                  &9.23183e+03,-2.23382e+01,1.49365e+01,&
+                  &1.70763e+04,2.63301e+01,3.75599e+01,&
+                  &9.15522e+03,-3.31022e+01,-6.13435e-01/)
+    real(kind=DP), parameter :: grad_coef_day(11) = (/&
+                  &2.31678e-22,1.17475e-20,-5.20743e-18,&
+                  &-1.98686e-16,4.44845e-14,1.19067e-12,&
+                  &-1.85079e-10,-3.38517e-09,3.84124e-07,&
+                  &3.35202e-06,-1.84164e-03/)
+    real(kind=DP), parameter :: dens_coef_nite(9) =(/&
+                  &6.99184e+03,-3.11663e+00,1.30464e+01,&
+                  &8.58528e+03,2.19513e+01,1.56983e+01,&
+                  &2.89385e+03,-1.87291e+01,3.21094e-01/)
+    real(kind=DP), parameter :: grad_coef_nite(11) = (/&
+                  &2.39859e-23,-1.28908e-20,-1.77123e-20,&
+                  &2.32415e-16,-4.42548e-15,-1.46548e-12,&
+                  &2.84474e-11,3.59593e-09,-2.62414e-08,&
+                  &-2.70750e-06,-1.63765e-03/)
+
+    ! Get densities at 1500 km altitude
+    dens_day = dens_coef_day(1)*exp(-abs((lat - dens_coef_day(2))/dens_coef_day(3))**2) +&
+              &dens_coef_day(4)*exp(-abs((lat - dens_coef_day(5))/dens_coef_day(6))**2) +&
+              &dens_coef_day(7) + dens_coef_day(8)*lat + dens_coef_day(9)*lat**2
+
+    dens_nite = dens_coef_nite(1)*exp(-abs((lat - dens_coef_nite(2))/dens_coef_nite(3))**2) +&
+               &dens_coef_nite(4)*exp(-abs((lat - dens_coef_nite(5))/dens_coef_nite(6))**2) +&
+               &dens_coef_nite(7) + dens_coef_nite(8)*lat + dens_coef_nite(9)*lat**2
+
+    ! Get gradients (slope in log space to the F2 peak)
+    grad_day  = 0
+    grad_nite = 0
+    do i=1,11
+      grad_day  = grad_day +  grad_coef_day(i)*lat**(11-i)
+      grad_nite = grad_nite + grad_coef_nite(i)*lat**(11-i)
+    end do
+
+    ! Extrapolate in log space to the desired altitude
+    dens_day  = dens_day*10.0_DP**(grad_day*(alt - 1500.0_DP))
+    dens_nite = dens_nite*10.0_DP**(grad_nite*(alt - 1500.0_DP))
+
+    ! Fade between day and night
+
+    ! if (lat.gt.85.0) then
+    !   print *, lat, mlt
+    ! end if
+    s1 = 1.0/(1.0 + exp((mod(mlt, 24.0_DP) - 18.0_DP)/mltslope))
+    s2 = 1.0/(1.0 + exp((mod(mlt, 24.0_DP) - 6.0_DP)/mltslope))
+    s = s1 - s2
+    ! s = s1
+    ! We're done!
+    ne_iono = s*dens_day + (1.0 - s)*dens_nite
+
+
+    ! print *,lat, mlt, alt, dens_day, grad_day, dens_nite, grad_nite, ne_iono
+    return
+  end function ne_iono
 
 
 
@@ -502,16 +525,12 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
 
 
 
-  function main_ps_density(L, a8, a9, iyear, doy, akp, amlt, lamr, r)
-      real(kind=DP) :: L, a8, a9, iyear, doy, akp, amlt, lamr, r
+  function main_ps_density(L, a8, a9, iyear, doy, akp, amlt, lam, r)
+      real(kind=DP), intent(in) :: L, a8, a9, iyear, doy, akp, amlt, lam, r
       real(kind=DP) :: main_ps_density
       real(kind=DP) :: ne_eq_ps, ne_eq_trough, zl, switch_ps2trough
-      real(kind=DP) :: offset, diff, swtch4, swtch5
-      real(kind=DP) :: iono_merge_altitude, iono_merge_L, iono_peak_L
-      real(kind=DP) :: ne_merge_value, diono, switch_iono2ps, iono_lam
-      real(kind=DP) :: ne_iono_source, ne_eq_iono
-      real(kind=DP) :: equatorial_density
-      real(kind=DP) :: switch_fade, eqh, transh, ne_cusp_value
+      real(kind=DP) :: cap_edge_lat, cap_edge_L, ne_polar_cap, switch_cap
+
 
       ! find the transition point between the two models
       ! (either the plasmapause, or the point at which
@@ -520,80 +539,78 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
 
 
 
-      ! ------- Inner plasmasphere profile -------------
+  !     ! ------- Inner plasmasphere profile -------------
       ne_eq_ps = ne_ps(L, a8, a9, iyear, doy, akp)
 
-      ! Altitude where we transition from iono to either ps or trough model.
-      ! GCPM does this by calculating the gradient of IRI wrt altitude,
-      ! but since we're not using IRI I'm just picking this to look nice.
-      ! Should smoothly vary with latitude.
-      ! iono_merge_altitude = iono_merge_altitude_equator*(1.0 + 10*abs(lamr)/PI)
-
- 
-      iono_merge_altitude = iono_merge_altitude_equator
-      ! ------- Ionosphere contribution to main ps -----
-      ! Find latitude at ionosphere:
-      iono_lam = acos(sqrt((REkm+ iono_peak_altitude)/(L*REkm)))*R2D
-      ! iono_merge_lam = acos(sqrt((R_E + iono_merge_altitude)/(L*R_E)))*R2D
-      ne_iono_source = ne_iono(lamr*R2D, amlt, 350.0_DP)
-      ! Get plasmasphere value at ionosphere-plasmasphere merge point:
-      iono_peak_L  = (iono_peak_altitude +  REkm)/(REkm)/(cos(lamr)**2)
-      iono_merge_L = (iono_merge_altitude + REkm)/(REkm)/(cos(lamr)**2)
-      ne_merge_value = ne_ps(iono_merge_L, a8, a9, iyear, doy, akp)
       
-      ! Slope (in log space) of line between iono and ps:      
-      diono = (log10(ne_merge_value) - log10(ne_iono_source))/(iono_merge_L - iono_peak_L)
-      ne_eq_iono = ne_iono_source*min(1.0_DP,10.0_DP**(diono*(L - iono_peak_L)))
-      switch_iono2ps = 1.0 - switch(L, iono_merge_L , iono_merge_L/2.0)
-      ne_eq_ps = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_ps
-
-
-
-
-
-      ! ------- Trough (outer plasmasphere) profile -------  
+!       ! ------- Trough (outer plasmasphere) profile -------  
       ne_eq_trough = ne_trough(L, amlt, akp)
 
-      ! ------- Ionosphere contribution to trough ---------
 
-      ne_merge_value = ne_trough(iono_merge_L, amlt, akp)
+     
+      if (do_trough.eq.1) then
+        switch_ps2trough = switch(L, zl, 0.6_DP) ! sets plasmapause slope...
+      else
+        switch_ps2trough = 0
+      end if
 
-      diono = (log10(ne_merge_value) - log10(ne_iono_source))/(iono_merge_L - iono_peak_L)
-      ne_eq_iono = ne_iono_source*min(1.0_DP,10.0_DP**(diono*(L - iono_peak_L)))
-      ! switch_iono2ps = 1.0 - switch(r - REkm, iono_merge_altitude, 1000.0_DP)
-
-
-      ! ---- Fade the trough up to the ionosphere wrt latitude ----
-
-      
-
-      ! switch_fade = switch(abs(lamr), D2R*20.0_DP, D2R*10.0_DP)
-      eqh = (L - 1.0)*REkm ! Equatorial altitude
-      transh = 350.0
-      switch_fade = switch(abs(r - REkm), transh + (eqh - transh)/2.0, (eqh - transh)/2.0)
-      ne_cusp_value = ne_iono_source*max(0,10**((-abs(r - REkm) - 350.0)/1000.0))
-
-        ! exp(-1.0*(&
-                      !&max(0,abs(r - REkm) - iono_merge_altitude)/000.0)))
-      ne_cusp_value = max(ne_eq_trough, ne_cusp_value)
-      ne_eq_trough = ne_cusp_value*(1.0 - switch_fade) + ne_eq_trough*(switch_fade)
-
-      ne_eq_trough = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_trough
-
-
-
-      switch_ps2trough = switch(L, zl, 0.6_DP) ! sets plasmapause slope...
       main_ps_density  = ne_eq_ps*(1.0 - switch_ps2trough) + &
                          &switch_ps2trough*ne_eq_trough
-
-      ! main_ps_density = ne_eq_ps + ne_eq_trough
+                   
+      if (do_cap.eq.1) then
+  !     ! ------- Polar Cap profile ---------------------
+        ne_polar_cap = ne_cap(lam, r, amlt, akp)
+        call poleward_edge(amlt, akp, cap_edge_lat, cap_edge_L)
+        switch_cap = switch(L, cap_edge_L, altrans)
+        main_ps_density = main_ps_density*(1.0 - switch_cap) + switch_cap*ne_polar_cap
+      end if
       return
   end function main_ps_density
 
 
 
 
+  subroutine find_intersection_iono_ps(a8, a9, iyear, doy, akp, lamr, amlt, merge_alt)
 
+      real(kind=DP), intent(in) :: a8, a9, iyear, doy, akp, lamr, amlt
+      real(kind=DP), intent(out) :: merge_alt
+
+      real(kind=DP) :: alt_guess, iono, iono_lam, ps, L_cur, stepl, diff
+      integer(kind=DP) :: i, icount
+
+      stepl = 1000.0_DP
+
+      alt_guess = 2000.0_DP
+
+
+
+      icount=0
+      do while ((abs(stepl).gt.100.0_DP).and.(alt_guess.lt.10000.0_DP))
+        if ((diff.lt.0.0).and.(stepl.gt.0.0) .or.&
+           &(diff.gt.0.0).and.(stepl.lt.0.0)) stepl=-stepl/2.0
+        alt_guess = alt_guess + stepl
+  
+        
+        L_cur = (alt_guess + REkm)/(REkm*cos(lamr)**2.0_DP)
+        ps = main_ps_density(L_cur, a8, a9, iyear, doy, akp, amlt, lamr*R2D, (alt_guess + REkm))
+        ! ps = ne_ps(L_cur, a8, a9, iyear, doy, akp)
+        ! iono_lam = acos(sqrt((REkm+ iono_peak_altitude)/(L_cur*REkm)))*R2D
+        iono = ne_iono(lamr*R2D, amlt, alt_guess)
+
+        diff=iono - ps
+
+        icount=icount+1
+        if (icount.gt.100) then
+          ! temp=pp_profile(zl,amlt,akp,a8)
+          print *, icount, ps, iono, diff, alt_guess, stepl
+
+          print *, 'Failed to find intersection'
+        endif
+      enddo
+
+      merge_alt = alt_guess
+      return
+  end subroutine find_intersection_iono_ps
 
 
 
@@ -654,7 +671,10 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
     real(kind=DP) :: ne_merge_trough, switch_iono2psOrTrough, ne_merge_value
     real(kind=DP) :: switch_trough2cap_lat, switch_trough2cap_rad, eqh
 
-    real(kind=DP) iono_merge_altitude, ne_trough_val
+    real(kind=DP) iono_merge_altitude, ne_trough_val, iono_ps_merge_alt
+
+    real(kind=DP) :: aHeH, alphaO, alphaHeP, alphaHe
+
 
     ! a6 = -0.79
     ! a7 = 5.208
@@ -663,6 +683,11 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
 
     ! Unmarshall the callback data
     datap = transfer(funcPlasmaParamsData, datap)
+    ! do_cap    = datap%p%do_cap
+    ! do_ps     = datap%p%do_ps
+    ! do_iono   = datap%p%do_iono
+    ! do_trough = datap%p%do_trough
+
 
     ! Allocate data if not already
     if (.not.(allocated(qs))) then
@@ -711,23 +736,22 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
     ! L-shell (dipole model)
     ! if (R_E*sin(p(3))**2 /= 0.0_DP) then
       L = real(p(1), kind=DP)/(R_E*cos(lamr)**2.0_DP)
-    ! else
-      ! L = 0.0_DP
-    ! end if
-
-
+  
 
     ! geocentric radii for all (L,lam) pairs
     r = (REkm) * L * cos(lamr)**2 
     
     ! al=r/max(1.0e-5, cos(lamr)**2)
 
-    print *, 'r: ',r, ' lam:',lam, ' L: ',L, ' kp: ', akp
+    ! print *, 'r: ',r, ' lam:',lam, ' L: ',L, ' kp: ', akp
 
-    if (r.lt.REkm) then
-      ! Inside the earth, don't bother calculating
-      ce = 0.0_DP
-    else
+    ! if (r.lt.REkm) then
+    !   ! Inside the earth, don't bother calculating
+    !   ce = 0.0_DP
+    !   ch = 0.0_DP
+    !   co = 0.0_DP
+    !   che= 0.0_DP
+    ! else
       ! Location of the plasmapause (Lpp = a8).
       ! a9 is a dropoff rate used in the expression
       ! for H.
@@ -755,48 +779,57 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
       zl = check_crossing(a8, amlt, akp, iyear, doy)
 
 
-
-      ! ------- Inner plasmasphere profile -------------
-      ne_eq_ps = ne_ps(L, a8, a9, iyear, doy, akp)
-
-      ! Altitude where we transition from iono to either ps or trough model.
-      ! GCPM does this by calculating the gradient of IRI wrt altitude,
-      ! but since we're not using IRI I'm just picking this to look nice.
-      ! Should smoothly vary with latitude.
-      ! iono_merge_altitude = iono_merge_altitude_equator*(1.0 + 10*abs(lamr)/PI)
-
  
-      iono_merge_altitude = iono_merge_altitude_equator
+
+      ! ! ------- Main plasmasphere profile -------------
+      ! ne_eq_ps = ne_ps(L, a8, a9, iyear, doy, akp)
+      ne_eq_ps = main_ps_density(L, a8, a9, iyear, doy, akp, amlt, lam, r)
+
+      ! Get altitude where ionosphere and plasmasphere intersect:
+      call find_intersection_iono_ps(a8, a9, iyear, doy, akp, lamr, amlt, iono_merge_altitude)
+
+      ne_eq_iono = ne_iono(lamr*R2D, amlt, r - REkm)
+      switch_iono2ps = 1.0 - switch(r - REkm, iono_merge_altitude - iono_merge_radius/2.0, iono_merge_radius)
+      ne_eq_ps = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_ps
+    
+
+      ! print *, 'Merge altitude: ', iono_merge_altitude, ' Altitude: ', r - REkm, ' switch: ',switch_iono2ps
+
+      ! iono_merge_altitude = iono_merge_altitude_equator
       ! ------- Ionosphere contribution to main ps -----
       ! Find latitude at ionosphere:
-      iono_lam = acos(sqrt((REkm+ iono_peak_altitude)/(L*REkm)))*R2D
-      ! iono_merge_lam = acos(sqrt((R_E + iono_merge_altitude)/(L*R_E)))*R2D
-      ne_iono_source = ne_iono(lamr*R2D, amlt, 350.0_DP)
+      ! iono_lam = acos(sqrt((REkm+ iono_peak_altitude)/(L*REkm)))*R2D
+      ! iono_lam = acos(sqrt((REkm + iono_merge_altitude)/(L*REkm)))*R2D
+      ! ne_iono_source = ne_iono(lamr*R2D, amlt, 350.0_DP)
       ! Get plasmasphere value at ionosphere-plasmasphere merge point:
-      iono_peak_L  = (iono_peak_altitude +  REkm)/(REkm)/(cos(lamr)**2)
-      iono_merge_L = (iono_merge_altitude + REkm)/(REkm)/(cos(lamr)**2)
-      ne_merge_value = ne_ps(iono_merge_L, a8, a9, iyear, doy, akp)
+      ! iono_peak_L  = (iono_peak_altitude +  REkm)/(REkm)/(cos(lamr)**2)
+      ! iono_merge_L = (iono_merge_altitude + REkm)/(REkm)/(cos(lamr)**2)
+      ! ne_merge_value = ne_ps(iono_merge_L, a8, a9, iyear, doy, akp)
       
       ! Slope (in log space) of line between iono and ps:      
-      diono = (log10(ne_merge_value) - log10(ne_iono_source))/(iono_merge_L - iono_peak_L)
-      ne_eq_iono = ne_iono_source*min(1.0_DP,10.0_DP**(diono*(L - iono_peak_L)))
-      switch_iono2ps = 1.0 - switch(L, iono_merge_L , iono_merge_L/2.0)
-      ne_eq_ps = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_ps
+      ! diono = (log10(ne_merge_value) - log10(ne_iono_source))/(iono_merge_L - iono_peak_L)
+      ! ne_eq_iono = ne_iono_source*min(1.0_DP,10.0_DP**(diono*(L - iono_peak_L)))
+      ! ne_eq_iono = ne_iono_source*10.0_DP**(diono*(L - iono_peak_L))
+
+      ! switch_iono2ps = 1.0 - switch(r - REkm, iono_merge_altitude, 2.0_DP*iono_merge_altitude)
+      ! ne_eq_ps = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_ps
 
 
 
-      ! ------- Trough (outer plasmasphere) profile -------  
-      ne_eq_trough = ne_trough(L, amlt, akp)
+      ! ! ------- Trough (outer plasmasphere) profile -------  
+      ! ne_eq_trough = ne_trough(L, amlt, akp,  lam, ne_polar_cap)
 
-      ! ------- Ionosphere contribution to trough ---------
+      ! ! ------- Ionosphere contribution to trough ---------
 
-      ne_merge_value = ne_trough(iono_merge_L, amlt, akp)
-      diono = (log10(ne_merge_value) - log10(ne_iono_source))/(iono_merge_L - iono_peak_L)
-      ne_eq_iono = ne_iono_source*min(1.0_DP,10.0_DP**(diono*(L - iono_peak_L)))
-      ne_eq_trough = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_trough
+      ! ne_merge_value = ne_trough(iono_merge_L, amlt, akp, lam, ne_polar_cap)
+      ! diono = (log10(ne_merge_value) - log10(ne_iono_source))/(iono_merge_L - iono_peak_L)
+      ! ! ne_eq_iono = ne_iono_source*min(1.0_DP,10.0_DP**(diono*(L - iono_peak_L)))
+      ! ne_eq_iono = ne_iono_source*10.0_DP**(diono*(L - iono_peak_L))
+      ! ne_eq_trough = ne_eq_iono*switch_iono2ps + (1.0 - switch_iono2ps)*ne_eq_trough
 
-      switch_trough2cap_lat = switch(abs(lam), 20.0_DP, 10.0_DP)
-      ne_trough_val = ne_eq_trough*(1.0 -switch_trough2cap_lat) + (switch_trough2cap_lat)*ne_polar_cap
+
+      ! switch_trough2cap_lat = switch(abs(lam), 20.0_DP, 10.0_DP)
+      ! ne_trough_val = ne_eq_trough*(1.0 -switch_trough2cap_lat) + (switch_trough2cap_lat)*ne_polar_cap
 
 
 
@@ -814,23 +847,31 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
       ! switch_trough2cap_rad = switch(r, eqh, REkm)
 
 
-      switch_ps2trough = switch(L, zl, 0.6_DP) ! sets plasmapause slope...
-
-      ! switch_cap = switch_trough2cap_rad*switch_ps2trough
-
-      ! Plasmasphere, trough, cap (pre-cap threshold)
-      ce =  ne_eq_ps*(1.0 - switch_ps2trough) + &
-            &switch_ps2trough*ne_trough_val
-
-
-      ce = ne_polar_cap
-      ! ! Toss the cap in
-      ! switch_cap = switch(L, cap_edge_L, altrans)
-      ! ce = ce*(1.0 - switch_cap) + switch_cap*ne_polar_cap
 
 
 
 
+
+
+
+
+
+
+
+
+
+      ! ----------------THIS ONE ----------------
+      ! switch_ps2trough = switch(L, zl, 0.6_DP) ! sets plasmapause slope...
+
+      ! ! Plasmasphere, trough, cap (pre-cap threshold)
+      ! ce =  ne_eq_ps*(1.0 - switch_ps2trough) + &
+      !       &switch_ps2trough*ne_eq_trough
+
+      ce = ne_eq_ps
+ 
+
+
+      ! ce = ne_iono(lamr*R2D, amlt, r - REkm)
 
 
 
@@ -945,24 +986,46 @@ real(kind=DP), parameter :: PN(72, 10) =reshape(&
       !   &(1.0 - switch_cap)*(&ne_eq_iono*(1.0 - switch_iono2ps) + &
       !     &(switch_iono2ps)*(ne_eq_ps*(1.0 - switch_ps2trough) + &
       !     &ne_eq_trough*switch_ps2trough))
-    end if
-    ! ce = ne_eq_iono
+    
 
-    ch = 0.0_DP
-    che= 0.0_DP
-    co = 0.0_DP
+    ! -------------- Get plasma constituents from electron density ---------
+    ! compute He+ to H+ density ratio in the plasmasphere
 
 
+      aHeH=10.0**(-1.541 - 0.176*r/REkm + 8.557e-3*f107 -1.458e-5*f107*f107)
+    ! Helium concentration drops dramatically with transition to high latitudes
+    ! and open field lines
+      aHeH=aHeH*(1.0-switch_cap)
+    ! compute relative O+ density
+      aheight=(r-REkm)
+      ! alphaO=0.995/(1.0+(aheight-350.0)**2/281250.0)**3+0.005
+      alphaO=0.995/(1.0+(aheight)**2/281250.0)**3+0.005
 
+    ! compute relative He+ concentration in the plasmasphere
+      if(aHeH.ne.0.0) then
+        alphaHeP=(1.0-alphaO)/(1.0+1.0/aHeH)
+        ! alphaHe=max(0.0,alphaHeP*(1.0-exp(-(aheight-400.0)/600.0)))
+        alphaHe=max(0.0,alphaHeP*(1.0-exp(-(aheight)/600.0)))
+      else
+        alphaHe=0.0
+      end if
+
+      ce = ce             ! Electrons
+      che= alphaHe*ce     ! Helium
+      co = alphaO*ce      ! Oxygen
+      ch = ce - che - co  ! Hydrogen (whatever's left)
+      
+    ! end if
     ! species charge and mass
+    ! (Electrons, Hydrogen, Helium, Oxygen)
     qs = 1.602e-19_DP*(/ -1.0_DP, 1.0_DP, 1.0_DP, 1.0_DP /);
     ms = (/ 9.10938188e-31_DP, 1.6726e-27_DP, &
          4.0_DP*1.6726e-27_DP, 16.0_DP*1.6726e-27_DP /);
     ! species collision frequencies (currently unused)
     nus = (/ 0.0_DP, 0.0_DP, 0.0_DP, 0.0_DP /);
-    Ns = 1.0e6_DP*(/ ce, ch, che, co /);
-    
-    
+    Ns = 1.0e6_DP*(/ ce, ch, che, co /);   ! /cm^3  -> /m^3
+
+  
     ! Tsyganenko magnetic field
     
     ! Convert the itime parameter into the Tsyganenko parameters

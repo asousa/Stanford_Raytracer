@@ -14,7 +14,14 @@ program raytracer_driver
        gcpmStateData, gcpmStateDataP
   use interp_dens_model_adapter, only : finterp=>funcPlasmaParams, &
        interpStateData, interpStateDataP, interpsetup=>setup
-  use raytracer, only : raytracer_run, raytracer_stopconditions
+  
+
+
+  ! use raytracer, only : raytracer_run, raytracer_stopconditions
+
+  ! Temporary file for me to safely fuck with the gradients
+  use raytracer_spherical, only : raytracer_run, raytracer_stopconditions
+
   use scattered_interp_dens_model_adapter, only : &
        fscatteredinterp=>funcPlasmaParams, &
        scatteredinterpStateData, scatteredinterpStateDataP, &
@@ -32,7 +39,7 @@ program raytracer_driver
   character (len=10000) :: buffer, inputraysfile, outputfile
   integer :: stopcond, i, maxsteps, j
 
-  real(kind=DP) :: del, minalt
+  real(kind=DP) :: delSP, delDP, minalt
   
   character(len=10000) :: interp_interpfile, ngo_configfile
   integer,parameter :: infile=51, outfile=50
@@ -237,7 +244,8 @@ program raytracer_driver
   ! large.  1e-6 is inaccurate.  1e-4 seems about a good usable
   ! number.  For double-precision models, obviously something higher
   ! can be used (1e-8 or thereabouts).
-  del = 1.0e-4_DP
+  delSP = 1.0e-4_DP
+  delDP = 1.0e-7_DP
   ! del = 1.0e-6_DP
   ! del = 1.0e-8_DP
 
@@ -792,7 +800,7 @@ program raytracer_driver
         read (buffer,*) tmpinput
         ngo3d_state_data%use_igrf = floor(tmpinput)
      end if
-     call getopt_named( 'ngo_kp', buffer, foundopt )
+     call getopt_named( 'kp', buffer, foundopt )
      if( foundopt == 1 ) then
         read (buffer,*) tmpinput
         ngo3d_state_data%kp = tmpinput
@@ -913,7 +921,7 @@ program raytracer_driver
         read (buffer,*) tmpinput
         simple_state_data%use_igrf = floor(tmpinput)
      end if
-     call getopt_named( 'ngo_kp', buffer, foundopt )
+     call getopt_named( 'kp', buffer, foundopt )
      if( foundopt == 1 ) then
         read (buffer,*) tmpinput
         simple_state_data%kp = tmpinput
@@ -967,6 +975,16 @@ program raytracer_driver
      call getopt_named( 'tsyganenko_W6', buffer, foundopt )
      if( foundopt == 1 ) then
         read (buffer,*) simple_state_data%W6
+     end if
+        ! Fixed MLT:
+     call getopt_named( 'MLT', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) simple_state_data%MLT
+     end if
+     call getopt_named( 'fixed_MLT', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) tmpinput
+        simple_state_data%fixed_MLT = floor(tmpinput)
      end if
 
      ! Marshall our data to the callback
@@ -1022,37 +1040,37 @@ program raytracer_driver
              pos,time,vprel,vgrel,n,&
              B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
-             fixedstep, del, fngo, data, raytracer_stopconditions)
+             fixedstep, delSP, fngo, data, raytracer_stopconditions)
      elseif( modelnum == 2 ) then
         call raytracer_run( &
              pos,time,vprel,vgrel,n, &
              B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
-             fixedstep, del, fgcpm, data, raytracer_stopconditions)
+             fixedstep, delSP, fgcpm, data, raytracer_stopconditions)
      elseif( modelnum == 3 ) then
         call raytracer_run( &
              pos,time,vprel,vgrel,n, &
              B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
-             fixedstep, del, finterp, data, raytracer_stopconditions)
+             fixedstep, delDP, finterp, data, raytracer_stopconditions)
      elseif( modelnum == 4 ) then
         call raytracer_run( &
              pos,time,vprel,vgrel,n, &
              B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
-             fixedstep, del, fscatteredinterp, data, raytracer_stopconditions)
+             fixedstep, delDP, fscatteredinterp, data, raytracer_stopconditions)
      elseif( modelnum == 5 ) then
         call raytracer_run( &
              pos,time,vprel,vgrel,n,&
              B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
-             fixedstep, del, fngo3d, data, raytracer_stopconditions)
+             fixedstep, delDP, fngo3d, data, raytracer_stopconditions)
      elseif( modelnum == 6 ) then
         call raytracer_run( &
              pos,time,vprel,vgrel,n,&
              B0, qs, ms, Ns, nus, stopcond, &
              pos0, dir0, w, dt0, dtmax, maxerr, maxsteps, minalt, root, tmax, &
-             fixedstep, del, fsimple, data, raytracer_stopconditions)
+             fixedstep, delDP, fsimple, data, raytracer_stopconditions)
      end if
      ! Write the data to the output file
      do i=1,size(time,1),outputper

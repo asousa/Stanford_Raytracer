@@ -1,4 +1,4 @@
-module raytracer
+module raytracer_spherical
 use types
 use util
 use constants
@@ -225,40 +225,112 @@ function dispersion_relation_dFdx(k, w, x, del, funcPlasmaParams, &
   end interface
   real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
   real(kind=DP) :: B0(3)
+  real(kind=DP) :: p(3)
   character :: funcPlasmaParamsData(:)
-  real(kind=DP) :: dispersion_relation_dFdx(3)
+  real(kind=DP) :: dispersion_relation_dFdx(3), polar_val(3)
   real(kind=DP) :: d
   real(kind=DP) :: dx(3), dy(3), dz(3)
+  real(kind=DP) :: dr, dtheta, tphi
   real(kind=DP) :: n(3)
-  real(kind=DP) :: Fp, Fn
+  real(kind=DP) :: Fp, Fn, Fp2, Fn2, Fp3, Fn3, tmp(3)
+  integer(kind=DP) :: i
+
 
   n = k*C/w
-  ! Central differencing
-  ! x component
-  d = max(del*abs(x(1)), del)
-  dx = d*(/ 1.0_DP,0.0_DP,0.0_DP /)
-  call funcPlasmaParams(x+dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-  Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
-  call funcPlasmaParams(x-dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-  Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
-  dispersion_relation_dFdx(1) = (Fp-Fn)/d/2.0_DP
-  ! y component
-  d = max(del*abs(x(2)), del)
-  ! dy = d*(/ 0.0_DP,1.0_DP,0.0_DP /)
-  ! call funcPlasmaParams(x+dy, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-  ! Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
-  ! call funcPlasmaParams(x-dy, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-  ! Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
-  ! dispersion_relation_dFdx(2) = (Fp-Fn)/d/2.0_DP
-  dispersion_relation_dFdx(2) = 0.0_DP
-  ! z component
-  d = max(del*abs(x(3)), del)
-  dz = d*(/ 0.0_DP,0.0_DP,1.0_DP /)
-  call funcPlasmaParams(x+dz, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-  Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
-  call funcPlasmaParams(x-dz, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-  Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
-  dispersion_relation_dFdx(3) = (Fp-Fn)/d/2.0_DP
+
+  
+  !   d = 1.0_DP*max(del*abs(x(i)), del)
+  !   dx = (/ 0.0_DP, 0.0_DP, 0.0_DP /)
+  !   dx(i) = d
+  !   call funcPlasmaParams(x - 3.0_DP*dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)    
+  !   Fn3 = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  !   call funcPlasmaParams(x - 2.0_DP*dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)    
+  !   Fn2 = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  !   call funcPlasmaParams(x - dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)    
+  !   Fn  = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  !   call funcPlasmaParams(x + dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)    
+  !   Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  !   call funcPlasmaParams(x + 2.0*dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)    
+  !   Fp2 = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  !   call funcPlasmaParams(x + 3.0*dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)    
+  !   Fp3 = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+
+  !   dispersion_relation_dFdx(i) = ( (3.0_DP/4.0_DP )*(Fp - Fn) &
+  !                                 - (3.0_DP/20.0_DP)*(Fp2 - Fn2) &
+  !                                 + (1.0_DP/60.0_DP)*(Fp3 - Fn3) )/d
+  !    ! dispersion_relation_dFdx(i) = ( (0.5_DP)*(Fp - Fn) )/d
+  ! end do
+
+
+  ! print *,'six-point result: ', dispersion_relation_dFdx
+  ! tmp = dispersion_relation_dFdx
+
+
+
+  ! ---------- two-point --------------
+  do i=1,3
+    d = max(del*abs(x(i)), del)
+    dx = (/ 0.0_DP, 0.0_DP, 0.0_DP /)
+    dx(i) = d
+    call funcPlasmaParams(x+dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
+    Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+    call funcPlasmaParams(x-dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
+    Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+    dispersion_relation_dFdx(i) = (Fp-Fn)/d/2.0_DP
+  end do
+    tmp = dispersion_relation_dFdx
+    ! print *,'two-point result: ', dispersion_relation_dFdx
+    ! print *,'difference: ',(tmp - dispersion_relation_dFdx)/tmp
+    ! print *,'\n'
+  
+
+
+  ! Mask off any longitudinal gradients close to the Earth
+  p = cartesian_to_spherical(x)
+  ! print *, 'p: ', p, " R_E: ", R_E
+
+  if (p(1).le.(2.0*R_E)) then
+    ! print *, 'pre: ', dispersion_relation_dFdx
+    dispersion_relation_dFdx = cartesian_to_spherical_vec(dispersion_relation_dFdx, p(2), p(3))
+    dispersion_relation_dFdx(2) = 0.0_DP
+    dispersion_relation_dFdx = spherical_to_cartesian_vec(dispersion_relation_dFdx, p(2), p(3))
+    ! print *, 'post: ', dispersion_relation_dFdx
+    ! print *, '\n'
+  end if
+
+
+
+  ! ! ------ Spherical ----------
+  ! p = cartesian_to_spherical(x)
+  ! dispersion_relation_dFdx = (/ 0.0_DP, 0.0_DP, 0.0_DP /)
+  ! do i=1,3
+  !   d = max(del*abs(p(i)), del)
+  !   dx = (/ 0.0_DP, 0.0_DP, 0.0_DP /)
+  !   polar_val = (/ 0.0_DP, 0.0_DP, 0.0_DP /)
+  !   dx(i) = d
+  !   call funcPlasmaParams(p+dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
+  !   Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  !   call funcPlasmaParams(p-dx, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
+  !   Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  !   polar_val(i) = (Fp-Fn)/d/2.0_DP
+
+  !   ! if (i.eq.2) then
+  !   !   polar_val(i) = polar_val(i)/p(1)
+  !   ! end if
+  !   ! if (i.eq.3) then
+  !   !   polar_val(i) = polar_val(i)/p(1)/sin(p(2))
+  !   ! end if
+  !   dispersion_relation_dFdx = dispersion_relation_dFdx + &
+  !   spherical_to_cartesian_vec(polar_val, p(2), p(3))
+  ! end do
+  !   print *, 'polar version: ', dispersion_relation_dFdx
+  !   print *,'difference: ',(tmp - dispersion_relation_dFdx)
+  !   print *, '\n'
+
+
+
+  ! print *, '\n'
+
 end function dispersion_relation_dFdx
 
 ! Format of args:
@@ -663,16 +735,10 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   if ((dir0(1).eq.0).and.(dir0(2).eq.0).and.(dir0(3).eq.0)) then
     call funcPlasmaParams(pos0, qstmp, Nstmp, mstmp, nustmp, B0tmp, funcPlasmaParamsData)
     p = cartesian_to_spherical(pos0)  ! Spherical starting direction
-
     B0tmp = cartesian_to_spherical_vec(B0tmp, p(2), p(3))
-    print *, 'sph_p: ',p
-    print *, 'sph_B: ',B0tmp
     b0tmp(1) = abs(b0tmp(1))
     B0tmp = spherical_to_cartesian_vec(B0tmp, p(2), p(3))
-
     dir0 = B0tmp/sqrt(dot_product(B0tmp,B0tmp))
-
-    print *,'Field-aligned starting direction: ', dir0
   end if
 
 
@@ -852,7 +918,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
     !  if (nstep > 1) then
     !   cur_dir = cur_pos - pos(:,nstep)
     !   prev_dir= pos(:, nstep) - pos(:,nstep-1)
-    !   angle_error = (180.0_DP/3.14159_DP)*acos(dot_product(cur_dir, prev_dir)/ &
+    !   angle_error = R2D*acos(dot_product(cur_dir, prev_dir)/ &
     !              sqrt(dot_product(cur_dir, cur_dir))/ &
     !              sqrt(dot_product(prev_dir, prev_dir)))
       
@@ -861,10 +927,12 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
     !   angle_error = 0.0_DP
     ! end if
     ! ! print *,'t: ',t,' dTheta: ',angle_error
+    ! ! print *, 'step=',nstep,' pos=',  cartesian_to_spherical(x(1:3))
 
-    ! if (angle_error > 10) then
-    !   if (n_angle_refines < 5) then
+    ! if (angle_error.gt.1.0_DP) then
+    !   if (n_angle_refines.le.10.0_DP) then
     !     print *, 'outside angle bounds - refine down'
+    !   print *, 'step=',nstep,' t: ', t, ' dTheta:', angle_error, ' pos=',  cartesian_to_spherical(x(1:3))
     !     dt = dt/2.0_DP
     !     n_angle_refines = n_angle_refines + 1
     !     lastrefinedown = 1
@@ -910,7 +978,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
      call funcPlasmaParams(x(1:3), qstmp, Nstmp, mstmp, nustmp, B0tmp, &
                            funcPlasmaParamsData)
 
-!!$     print *, 'pos=',  x(1:3)
+     ! print *, 'pos=',  x(1:3)
 !!$     print *, 'time=',  t
 !!$     print *, 'n=',  x(4:6)
 !!$     print *, 'pos=', x(1:3)
@@ -985,4 +1053,4 @@ end subroutine raytracer_run
    
 
 
-end module raytracer
+end module raytracer_spherical

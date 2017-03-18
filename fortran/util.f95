@@ -141,6 +141,28 @@ function spherical_to_cartesian_vec(p, theta, phi)
   spherical_to_cartesian_vec = matmul(transpose(A), p)
 end function spherical_to_cartesian_vec
 
+
+
+! Convert the input vector (p(1)*rhohat,p(2)*thetahat,p(3)*phihat) to 
+! (x(1)*xhat,x(2)*yhat,x(3)*zhat at the position (theta,phi)
+function cartesian_to_spherical_vec(p, theta, phi)
+  implicit none
+  real(kind=DP) :: cartesian_to_spherical_vec(3)
+  real(kind=DP) :: p(3), theta, phi
+  real(kind=DP) :: A(3,3)
+  
+  ! convert spherical unit vectors to cartesian unit vectors.
+  ! (inverse of spherical_to_cartesian_vec)
+
+  A = reshape( (/ cos(theta)*sin(phi), -sin(theta), cos(theta)*cos(phi), &
+                  sin(theta)*sin(phi), cos(theta), sin(theta)*cos(phi),  &
+                  cos(phi), 0.0_DP, -sin(phi) /), (/ 3,3 /) )
+  cartesian_to_spherical_vec = matmul(A, p)
+
+end function cartesian_to_spherical_vec
+
+
+
 function cross(b,c)
   implicit none
   real(kind=DP) :: cross(3), b(3), c(3)
