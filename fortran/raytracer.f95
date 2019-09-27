@@ -244,13 +244,13 @@ function dispersion_relation_dFdx(k, w, x, del, funcPlasmaParams, &
   dispersion_relation_dFdx(1) = (Fp-Fn)/d/2.0_DP
   ! y component
   d = max(del*abs(x(2)), del)
-  ! dy = d*(/ 0.0_DP,1.0_DP,0.0_DP /)
-  ! call funcPlasmaParams(x+dy, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-  ! Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
-  ! call funcPlasmaParams(x-dy, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
-  ! Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
-  ! dispersion_relation_dFdx(2) = (Fp-Fn)/d/2.0_DP
-  dispersion_relation_dFdx(2) = 0.0_DP
+  dy = d*(/ 0.0_DP,1.0_DP,0.0_DP /)
+  call funcPlasmaParams(x+dy, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
+  Fp = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  call funcPlasmaParams(x-dy, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
+  Fn = dispersion_relation(n, w, qs, Ns, ms, nus, B0 )
+  dispersion_relation_dFdx(2) = (Fp-Fn)/d/2.0_DP
+  ! dispersion_relation_dFdx(2) = 0.0_DP
   ! z component
   d = max(del*abs(x(3)), del)
   dz = d*(/ 0.0_DP,0.0_DP,1.0_DP /)
@@ -440,7 +440,6 @@ subroutine solve_dispersion_relation(k, w, x, k1, k2, &
   real(kind=DP) :: cos2phi, sin2phi, B0mag
   real(kind=DP) :: S,D,P,R,L, A,B
   real(kind=DP) :: phi
-  logical :: blah
 
   call funcPlasmaParams(x, qs, Ns, ms, nus, B0, funcPlasmaParamsData)
   
@@ -744,7 +743,7 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
   stopcond = 0
 
   print *,'Starting position: ',x(1:3)
-  print *,'Starting k: ',x(4:6)
+  print *,'Starting kay: ',x(4:6)
 
   nstep = 1
   do
@@ -759,10 +758,15 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
                                     vgrel(:,size(vgrel,2)), dt, &
                                     nstep, maxsteps, minalt ) 
      if( stopcond /= 0 ) then
+        print *, 'stopped at t=', t
         exit
      end if
 
-     !print *, 't=', t
+     ! Print the current time step -- comment this out if you don't want
+     ! all that output on your screen
+     print '(a,f5.2)', 't=', t
+
+
      if( fixedstep == 0 ) then
         ! Adaptive timesteps - use embedded rk45 scheme
         call rk45( t, x, del, dt, &
@@ -798,7 +802,8 @@ subroutine raytracer_run( pos,time,vprel,vgrel,n,&
           ! end if
         end if
         if( lastrefinedown==0 .and. &
-           err < maxerr/10.0_DP .and. &
+           ! err < maxerr/10.0_DP .and. &
+           err < maxerr/100.0_DP .and. &     ! Trying 100 instead of 10 -- 1.6.2018 -- hopefully the larger error tolerance will still have a generally small error in the healthy regions
            dt*1.25_DP < dtmax ) then
            !print *, 'Refine up'
            ! Refine up

@@ -86,15 +86,15 @@ C********** INTERNATIONAL REFERENCE IONOSPHERE ****************
 C**************************************************************  
 C****************  FUNCTIONS,SUBROUTINES  *********************
 C**************************************************************
-C** initialize:	INITIALIZE 
+C** initialize:   INITIALIZE 
 C** NE:         XE1,TOPQ,ZERO,DXE1N,XE2,XE3_1,XE4_1,XE5,XE6,
 C**             XE_1,CALNE
 C** TE/TI:      ELTEIK,SPHARM_IK,TEBA,SPHARM,ELTE,TEDE,TI,TEDER,
-C**		          TN,DTNDH
+C**                   TN,DTNDH
 C** NI:         RPID,RDHHE,RDNO,KOEFP1,KOEFP2,KOEFP3,SUFE
 C**               IONCO2,APROK,IONCOMP,IONCO1,CALION,INVDPC
 C** PEAKS:      FOUT,XMOUT,HMF2ED,FOF1ED,f1_c1,f1_prob,FOEEDI,XMDED,
-C**		          GAMMA1
+C**                   GAMMA1
 C** PROFILE PAR:B0_98,TAL,VALGUL
 C** MAG. FIELD: GGM,FIELDG,CONVER(Geom. Corrected Latitude)
 C** FUNCTIONS:  REGFA1
@@ -102,10 +102,10 @@ C** TIME:       SOCO,HPOL,MODA,UT_LT
 C** EPSTEIN:    RLAY,D1LAY,D2LAY,EPTR,EPST,EPSTEP,EPLA
 C** LAY:        XE2TO5,XEN,VALGUL,ROGUL,LNGLSN,LSKNM,INILAY
 C** INDICES:    TCON,APF,APF_ONLY
-C** Storm:   	LSTID,storm
+C** Storm:        LSTID,storm
 C** ion drift:  vdrift,bspl4_time,bspl4_long,g,stormvd,
 C**             bspl4_ptime
-C** spread-F:	spreadf_brazil,bspl2f,bspl2l,bspl2s,bspl4t
+C** spread-F:     spreadf_brazil,bspl2f,bspl2l,bspl2s,bspl4t
 C**************************************************************  
 C  
 C**************************************************************  
@@ -149,7 +149,7 @@ c----------------------------------------------------------------
      &          /BLO11/B2TOP,TC3,itopn,alg10,hcor1
      &          /ARGEXP/ARGMAX
 
-        logical 	f1reg              
+        logical   f1reg              
 
         IF(itopn.eq.2) THEN
           XE1=TOPQ(H,XNMF2,HMF2,B2TOP)
@@ -234,7 +234,7 @@ C
 C LOGARITHMIC DERIVATIVE OF FUNCTION XE1 (KM-1).   
         COMMON    /BLOCK1/HMF2,XNMF2,HMF1,F1REG
      &            /BLO10/BETA,ETA,DELTA,ZETA                    
-	    logical f1reg
+          logical f1reg
 
         x0 = 300. - delta
         X=(H-HMF2)/(1000.0-HMF2)*700.0 + x0
@@ -249,7 +249,7 @@ C
 C ELECTRON DENSITY FOR THE BOTTOMSIDE F-REGION (HMF1...HMF2).                   
         COMMON    /BLOCK1/HMF2,XNMF2,HMF1,F1REG
      &          /BLOCK2/B0,B1,C1        /ARGEXP/ARGMAX
-	    logical	f1reg
+          logical f1reg
 
         X=(HMF2-H)/B0
         if(x.le.0.0) x=0.0
@@ -264,11 +264,11 @@ C
 C ELECTRON DENSITY FOR THE F1-LAYER (HZ.....HMF1)
 C USING THE NEW DEFINED F1-LAYER FUNCTION (Reinisch and Huang, Advances 
 C in Space Research, Volume 25, Number 1, 81-88, 2000)
-        COMMON	/BLOCK1/	HMF2,XNMF2,HMF1,F1REG
-     &		/BLOCK2/	B0,B1,D1F1
-	    logical	f1reg
+        COMMON    /BLOCK1/    HMF2,XNMF2,HMF1,F1REG
+     &            /BLOCK2/    B0,B1,D1F1
+          logical f1reg
 C
-	    h1bar=h
+          h1bar=h
         if (f1reg) H1BAR=HMF1*(1.0-((HMF1-H)/HMF1)**(1.0+D1F1))
         XE3_1=XE2(H1BAR)
         RETURN
@@ -278,13 +278,13 @@ C
         REAL FUNCTION XE4_1(H)
 C ELECTRON DENSITY FOR THE INTERMEDIATE REGION (HEF...HZ)
 C USING THE NEW DEFINED FUNCTION
-        COMMON	/BLOCK3/	HZ,T,HST
-     &		/BLOCK4/	HME,XNME,HEF
+        COMMON    /BLOCK3/    HZ,T,HST
+     &            /BLOCK4/    HME,XNME,HEF
 C
-	    if(hst.lt.0.0) then
-		xe4_1=xnme+t*(h-hef)
-		return
-		endif
+          if(hst.lt.0.0) then
+            xe4_1=xnme+t*(h-hef)
+            return
+            endif
         IF(HST.EQ.HEF) THEN
            H1BAR=H
         ELSE
@@ -333,12 +333,12 @@ C SUMMARIZING PROCEDURES  NE1....6;
         COMMON    /BLOCK1/HMF2,XNMF2,XHMF1,F1REG         
      &          /BLOCK3/HZ,T,HST
      &        /BLOCK4/HME,XNME,HEF
-	    logical 	f1reg
-	    if(f1reg) then
-		   hmf1=xhmf1
-	    else
-		   hmf1=hmf2
-	    endif
+          logical       f1reg
+          if(f1reg) then
+               hmf1=xhmf1
+          else
+               hmf1=hmf2
+          endif
         IF(H.LT.HMF2) GOTO 100                       
         XE_1=XE1(H)     
         RETURN          
@@ -364,7 +364,7 @@ C SUMMARIZING PROCEDURES  NE1....6;
         END             
 c
 c
-	SUBROUTINE CALNE(CRD,INVDIP,FL,DIMO,B0,
+      SUBROUTINE CALNE(CRD,INVDIP,FL,DIMO,B0,
      &                    DIPL,MLT,ALT,DDD,F107,NNE)
 C Version 1.0 (released 30.6.2004)
 C CALNE calculates electron density in the outer
@@ -709,9 +709,9 @@ C Output: NNE - Ne density
       REAL N0A400,N0B400,N400A,N400B,N400
       REAL N0A650,N0B650,N650A,N650B,N650
       REAL N0A100,N0B100,N100A,N100B,N1000
-	REAL ANO(3),AH(3),DNO(1),ST(2)
-	COMMON/ARGEXP/ARGMAX
-	DATA (MIRREQ(J),J=1,49)/
+      REAL ANO(3),AH(3),DNO(1),ST(2)
+      COMMON/ARGEXP/ARGMAX
+      DATA (MIRREQ(J),J=1,49)/
      &            1,-1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,
      &            1,-1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1,
      &           -1, 1,-1, 1,-1, 1, 1,-1, 1, 1,-1, 1,-1, 1, 1/
@@ -724,7 +724,7 @@ C     coefficients for mirroring
 10     D(3,3,I)=D(3,2,I)*MIRREQ(I)
       IF (CRD .EQ. 1) THEN
        INVDP=INVDPC(FL,DIMO,B0,DIPL,DTOR)
-      ELSE IF	(CRD .EQ. 0) THEN
+      ELSE IF     (CRD .EQ. 0) THEN
        INVDP=INVDIP
       ELSE
        RETURN
@@ -782,22 +782,22 @@ C     400km level
         N400=(N400B-N400A)/(DDDB-DDDA)*(DDDD-DDDA)+N400A
 C     650km level
       N0A650=0.0
-	N0B650=0.0
-	DO 70 I=1,49
+      N0B650=0.0
+      DO 70 I=1,49
          N0A650=N0A650+C(I)*D(2,SEZAI,I)
 70       N0B650=N0B650+C(I)*D(2,SEZBI,I)
-	N650A=N0A650
-	N650B=N0B650
-	N650=(N650B-N650A)/(DDDB-DDDA)*(DDDD-DDDA)+N650A
+      N650A=N0A650
+      N650B=N0B650
+      N650=(N650B-N650A)/(DDDB-DDDA)*(DDDD-DDDA)+N650A
 C     1000km level
       N0A100=0.0
       N0B100=0.0
-	DO 110 I=1,49
+      DO 110 I=1,49
          N0A100=N0A100+C(I)*D(3,SEZAI,I)
 110      N0B100=N0B100+C(I)*D(3,SEZBI,I)
-	N100A=N0A100
-	N100B=N0B100
-	N1000=(N100B-N100A)/(DDDB-DDDA)*(DDDD-DDDA)+N100A
+      N100A=N0A100
+      N100B=N0B100
+      N1000=(N100B-N100A)/(DDDB-DDDA)*(DDDD-DDDA)+N100A
           
 C      IF (ALT .LT. 650) NO=(N650-N400)/250.0*(ALT-400)+N400
 C      IF (ALT .GE. 650) NO=(N1000-N650)/350.0*(ALT-650)+N650
@@ -805,10 +805,10 @@ C      IF (ALT .GE. 650) NO=(N1000-N650)/350.0*(ALT-650)+N650
 C      NION=10**NO
 
       ANO(1)=N400
-	 ANO(2)=N650
-	  ANO(3)=N1000
-	  
-	AH(1)=400.
+       ANO(2)=N650
+        ANO(3)=N1000
+        
+      AH(1)=400.
        AH(2)=650.
         AH(3)=1000.
       
@@ -826,8 +826,8 @@ C      NION=10**NO
       SUM=ANO(1)+ST(1)*(ALT-AH(1))                     
      
       I=1
-	aa = eptr(alt  ,dno(i),ah(i+1))
-	bb = eptr(ah(1),dno(i),ah(i+1))
+      aa = eptr(alt  ,dno(i),ah(i+1))
+      bb = eptr(ah(1),dno(i),ah(i+1))
       SUM=SUM+(ST(I+1)-ST(I))*(AA-BB)*DNO(I)
                 
       NNE=10**SUM       
@@ -863,7 +863,7 @@ C         DDD - day of year; range <0;365>
 C         D - coefficints of spherical harmonics for a given ion
 C Output: NNE - electron density [m-3]
       REAL INVDIP,FL,DIMO,B0,DIPL,MLT,ALT,NNE
-	INTEGER CRD,DDD
+      INTEGER CRD,DDD
       DIMENSION  D(4,3,49),MIRREQ(49)
       REAL INVDP,INVDPC,DTOR
       REAL RMLT,RCOLAT
@@ -873,9 +873,9 @@ C Output: NNE - electron density [m-3]
       REAL N0A900,N0B900,N900A,N900B,N900
       REAL N0A150,N0B150,N150A,N150B,N1500
       REAL N0A250,N0B250,N250A,N250B,N2500
-	REAL ANO(4),AH(4),DNO(2),ST(3)
-	COMMON/ARGEXP/ARGMAX
-	DATA (MIRREQ(J),J=1,49)/
+      REAL ANO(4),AH(4),DNO(2),ST(3)
+      COMMON/ARGEXP/ARGMAX
+      DATA (MIRREQ(J),J=1,49)/
      &            1,-1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,
      &            1,-1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1,
      &           -1, 1,-1, 1,-1, 1, 1,-1, 1, 1,-1, 1,-1, 1, 1/
@@ -889,7 +889,7 @@ C     coefficients for mirroring
 10     D(4,3,I)=D(4,2,I)*MIRREQ(I)
       IF (CRD .EQ. 1) THEN
        INVDP=INVDPC(FL,DIMO,B0,DIPL,DTOR)
-      ELSE IF	(CRD .EQ. 0) THEN
+      ELSE IF     (CRD .EQ. 0) THEN
        INVDP=INVDIP
       ELSE
        RETURN
@@ -947,25 +947,25 @@ C     550km level
         N550=(N550B-N550A)/(DDDB-DDDA)*(DDDD-DDDA)+N550A
 C     900km level
       N0A900=0.0
-	N0B900=0.0
-	DO 70 I=1,49
+      N0B900=0.0
+      DO 70 I=1,49
          N0A900=N0A900+C(I)*D(2,SEZAI,I)
 70       N0B900=N0B900+C(I)*D(2,SEZBI,I)
-	N900A=N0A900
-	N900B=N0B900
-	N900=(N900B-N900A)/(DDDB-DDDA)*(DDDD-DDDA)+N900A
+      N900A=N0A900
+      N900B=N0B900
+      N900=(N900B-N900A)/(DDDB-DDDA)*(DDDD-DDDA)+N900A
 C     1500km level
       N0A150=0.0
       N0B150=0.0
-	DO 110 I=1,49
+      DO 110 I=1,49
          N0A150=N0A150+C(I)*D(3,SEZAI,I)
 110      N0B150=N0B150+C(I)*D(3,SEZBI,I)
-	N150A=N0A150
-	N150B=N0B150
-	N1500=(N150B-N150A)/(DDDB-DDDA)*(DDDD-DDDA)+N150A
+      N150A=N0A150
+      N150B=N0B150
+      N1500=(N150B-N150A)/(DDDB-DDDA)*(DDDD-DDDA)+N150A
 C     2500km level
       N0A250=0.0
-	N0B250=0.0
+      N0B250=0.0
        DO 150 I=1,49
         N0A250=N0A250+C(I)*D(4,SEZAI,I)
 150     N0B250=N0B250+C(I)*D(4,SEZBI,I)
@@ -979,11 +979,11 @@ C     &  NO=(N1500-N900)/600.0*(ALT-900)+N900
 c      IF (ALT .GE. 1500) NO=(N2500-N1500)/1000.0*(ALT-1500)+N1500
 
       ANO(1)=N550
-	 ANO(2)=N900
-	  ANO(3)=N1500
-	   ANO(4)=N2500
+       ANO(2)=N900
+        ANO(3)=N1500
+         ANO(4)=N2500
 
-	AH(1)=550.
+      AH(1)=550.
        AH(2)=900.
         AH(3)=1500.
          AH(4)=2250.
@@ -1003,8 +1003,8 @@ c      IF (ALT .GE. 1500) NO=(N2500-N1500)/1000.0*(ALT-1500)+N1500
       SUM=ANO(1)+ST(1)*(ALT-AH(1))                     
      
       DO 230 I=1,2
-	aa = eptr(alt  ,dno(i),ah(i+1))
-	bb = eptr(ah(1),dno(i),ah(i+1))
+      aa = eptr(alt  ,dno(i),ah(i+1))
+      bb = eptr(ah(1),dno(i),ah(i+1))
 230   SUM=SUM+(ST(I+1)-ST(I))*(AA-BB)*DNO(I)
                 
       NNE=10**SUM       
@@ -1031,7 +1031,7 @@ C (21.3. = 79; 21.6. = 171; 23.9. 265; 21.12. = 354) Te is
 C linearly interpolated.
 C Inputs: CRD - 0 .. INVDIP
 C               1 .. FL, DIMO, B0, DIPL (used for calculation INVDIP 
-C						inside)
+C                                   inside)
 C         F107Y - 0 .. F107 correction NOT included
 C                 1 .. F107 correction included
 C         SEASY - 0 .. seasonal correction NOT included
@@ -1059,7 +1059,7 @@ C Versions: 1.00 (IDL) the first version Te=Te(invl,mlt,alt,season)
 C           1.50 (IDL) corrected IK19 Te at 900km for possible 
 C                      Ne > 2E11 m-3
 C           2.00 (IDL) F107 included as a linear perturbation on global 
-C			Te pattern
+C                 Te pattern
 C                      Te=Te(invlat,mlt,alt,season,F107)
 C           3.00 (IDL) invdipl introduced
 C           2000 (IDL,FORTRAN) correction for seasons included
@@ -1346,7 +1346,7 @@ C     550km equinox
      &        -8.0197E-02,-1.5931E-08,-1.6002E-02,-2.9124E-02,
      &         4.8067E-09, 9.0446E-03, 1.2273E-08,-3.0496E-02,
      &         7.8786E-03/
-	DATA (FB(1,1,J),J=1,49)/
+      DATA (FB(1,1,J),J=1,49)/
      &        -4.1934E+02, 7.5753E-05, 3.0092E+02, 1.1961E-04,
      &         1.6897E+02, 8.2549E-05, 8.4754E+01,-7.4083E-02,
      &        -1.8769E-06,-8.7576E+01, 1.3779E-05, 7.9487E+00,
@@ -1375,7 +1375,7 @@ C     550km June solstice
      &         7.9895E-02, 1.2443E-01, 2.5079E-03,-3.8743E-02,
      &        -2.1658E-02, 6.8794E-02, 3.6839E-02,-4.1913E-02,
      &        -3.5795E-03/
-	DATA (FB(1,2,J),J=1,49)/
+      DATA (FB(1,2,J),J=1,49)/
      &        -6.2695E+02,-1.7178E+01, 1.1405E+02, 1.7127E+02,
      &         1.3752E+02, 1.3641E+02,-7.0975E+01, 1.4633E+01,
      &         5.2949E+01,-2.8160E+01,-3.0614E+01,-2.7290E+01,
@@ -1520,7 +1520,7 @@ C     2500km equinox
      &         4.4499E-02, 1.0183E-09, 1.6406E-02, 6.9291E-04,
      &         6.8229E-09,-2.7379E-02, 5.8450E-09,-1.4324E-02,
      &        -1.4532E-02/
-	DATA (FB(4,1,J),J=1,49)/
+      DATA (FB(4,1,J),J=1,49)/
      &        -4.2157E+02,-1.2843E-05, 1.1677E+02,-1.9182E-05,
      &         6.6617E+00,-2.7718E-05,-1.0527E+02,-1.7184E+01,
      &        -3.4177E-07,-7.2191E+01,-1.1358E-07,-1.8024E+01,
@@ -1549,7 +1549,7 @@ C     2500km June solstice
      &         2.0433E-01, 9.0147E-03, 1.4602E-02, 5.6125E-02,
      &        -5.2173E-03, 2.8963E-02,-1.2959E-02, 3.1247E-02,
      &        -3.5943E-02/
-	DATA (FB(4,2,J),J=1,49)/
+      DATA (FB(4,2,J),J=1,49)/
      &        -1.9899E+02, 8.3014E+01,-1.2364E+02,-4.9417E+01,
      &        -1.7956E+02, 1.8431E+02, 3.0699E+02, 2.7139E+01,
      &         2.1287E+02, 2.3659E+01, 4.2878E+01, 8.0452E+01,
@@ -1741,7 +1741,7 @@ C      invariant latitude (absolute value)
        ALFA=SIN(ABS(RDIPL))**3
        BETA=COS(RINVL)**3
        INVDP=(ALFA*SIGN(1.0,DIPL)*INVL+BETA*DIPL)/(ALFA+BETA)
-      ELSE IF	(CRD .EQ. 0) THEN
+      ELSE IF     (CRD .EQ. 0) THEN
        INVDP=INVDIP
       ELSE
        RETURN
@@ -1902,7 +1902,7 @@ C     2500km level
        END
 c
 c
-	SUBROUTINE SPHARM_IK(C,L,M,COLAT,AZ)
+      SUBROUTINE SPHARM_IK(C,L,M,COLAT,AZ)
 C CALCULATES THE COEFFICIENTS OF THE SPHERICAL HARMONIC
 C FROM IRI 95 MODEL
 C NOTE: COEFFICIENTS CORRESPONDING TO COS, SIN SWAPPED!!!
@@ -2822,9 +2822,9 @@ c-------------------------------------------------------
         do 1122 i=1,7
 1122                diont(i)=0.
 
-		xmlt = xm
-		iddd = id
-		ryear = xy
+            xmlt = xm
+            iddd = id
+            ryear = xy
         month_sea = ismo
         h = hx
         xhi = zd
@@ -2832,23 +2832,23 @@ c-------------------------------------------------------
         xlongi = fp
         cov = fs
          if (h.gt.300.) then
-        	call igrf_sub(xlati,xlongi,ryear,h,
-     &  	    xl,icode,dipl,babs)
-        	if(xl.gt.10.) xl=10.
-c        	icd=1    ! compute INVDIP
-        	dimo=0.311653
-			call CALION(1,xinvdip,xl,dimo,babs,dipl,xmlt,h,
-     &  	 iddd,cov,xioncomp_O,xioncomp_H,xioncomp_He,xioncomp_N)
-       		diont(1)=xioncomp_O*100.
-        	diont(2)=xioncomp_H*100.
-        	diont(3)=xioncomp_N*100.
-        	diont(4)=xioncomp_He*100.
+            call igrf_sub(xlati,xlongi,ryear,h,
+     &          xl,icode,dipl,babs)
+            if(xl.gt.10.) xl=10.
+c           icd=1    ! compute INVDIP
+            dimo=0.311653
+                  call CALION(1,xinvdip,xl,dimo,babs,dipl,xmlt,h,
+     &       iddd,cov,xioncomp_O,xioncomp_H,xioncomp_He,xioncomp_N)
+                  diont(1)=xioncomp_O*100.
+            diont(2)=xioncomp_H*100.
+            diont(3)=xioncomp_N*100.
+            diont(4)=xioncomp_He*100.
         else
-        	call ionco2(h,xhi,month_sea,cov,rno,ro2,rcl,ro)
-        	diont(5)=rno
-        	diont(6)=ro2
-       		diont(7)=rcl
-        	diont(1)=ro
+            call ionco2(h,xhi,month_sea,cov,rno,ro2,rcl,ro)
+            diont(5)=rno
+            diont(6)=ro2
+                  diont(7)=rcl
+            diont(1)=ro
         endif
         do 1 i=1,7
                 dion(i)=diont(i)
@@ -2959,7 +2959,7 @@ c       do 6 i=1,7
         end
 c
 c
-	SUBROUTINE CALION(CRD,INVDIP,FL,DIMO,B0,
+      SUBROUTINE CALION(CRD,INVDIP,FL,DIMO,B0,
      &                    DIPL,MLT,ALT,DDD,F107,NO,NH,NHE,NN)
 C Version 1.0 (released 20.12.2002)
 C CALION calculates relative density of O+, H+, He+ and N+  in the outer
@@ -2994,7 +2994,7 @@ C         Czech Republic
 C         e-mail: vtr@ufa.cas.cz
 C         tel/fax: +420 267103058, +420 728073539 / +420 272 762528
       REAL INVDIP,FL,DIMO,B0,DIPL,MLT,ALT,F107
-	INTEGER CRD,DDD,ION
+      INTEGER CRD,DDD,ION
       REAL NO,NH,NHE,NN,NOH,NHH,NHEH,NNH,NOL,NHL,NHEL,NNL,NTOT
       DIMENSION  DOL(3,3,49),DHL(3,3,49),DHEL(3,3,49),DNL(3,3,49)
       DIMENSION  DOH(4,3,49),DHH(4,3,49),DHEH(4,3,49),DNH(4,3,49)
@@ -3144,7 +3144,7 @@ C     2250km June solstice
      &                       -1.8408E-003,-1.1994E-002,-4.7379E-003,
      &                       -2.0841E-002,-2.9637E-003,-4.9867E-003,
      &                       -1.4069E-002/
-C////////////////////////////////////////////////////////////////////////////////////	
+C////////////////////////////////////////////////////////////////////////////////////     
 C//////////////////////////////////H+////////////////////////////////////////////////
 C     550km equinox
       DATA (DHH(1,1,J),J=1,49)/-3.1678E+000, 3.6289E-007,-5.5819E-002,
@@ -3290,7 +3290,7 @@ C     2250km June solstice
      &                       -5.3892E-004, 8.5280E-004, 1.4028E-003,
      &                        3.5032E-003,-3.7237E-004,-2.5767E-005,
      &                       -8.0710E-004/
-C////////////////////////////////////////////////////////////////////////////////////	
+C////////////////////////////////////////////////////////////////////////////////////     
 C//////////////////////////////////He+///////////////////////////////////////////////
 C     550km equinox
       DATA (DHEH(1,1,J),J=1,49)/-3.0827E+000, 4.4643E-007,-3.4361E-001,
@@ -4048,7 +4048,7 @@ C     normalization
       NNH=NNH/NTOT
 C     interpolation (in logarithm)
       IF (F107 .GT. 200) F107=200
-	IF (F107 .LT. 85) F107=85
+      IF (F107 .LT. 85) F107=85
       NO=(ALOG10(NOH)-ALOG10(NOL))/(200.0-85.0)*(F107-85.0)+ALOG10(NOL)
       NH=(ALOG10(NHH)-ALOG10(NHL))/(200.0-85.0)*(F107-85.0)+ALOG10(NHL)
       NHE=(ALOG10(NHEH)-ALOG10(NHEL))/(200.0-85.0)*(F107-85.0)+
@@ -4107,9 +4107,9 @@ C Output: NION - relative density for a given ion
       REAL N0A400,N0B400,N400A,N400B,N400
       REAL N0A650,N0B650,N650A,N650B,N650
       REAL N0A100,N0B100,N100A,N100B,N1000
-	REAL ANO(3),AH(3),DNO(1),ST(2)
-	COMMON/ARGEXP/ARGMAX
-	DATA (MIRREQ(J),J=1,49)/
+      REAL ANO(3),AH(3),DNO(1),ST(2)
+      COMMON/ARGEXP/ARGMAX
+      DATA (MIRREQ(J),J=1,49)/
      &            1,-1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,
      &            1,-1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1,
      &           -1, 1,-1, 1,-1, 1, 1,-1, 1, 1,-1, 1,-1, 1, 1/
@@ -4122,7 +4122,7 @@ C     coefficients for mirroring
 10     D(3,3,I)=D(3,2,I)*MIRREQ(I)
       IF (CRD .EQ. 1) THEN
        INVDP=INVDPC(FL,DIMO,B0,DIPL,DTOR)
-      ELSE IF	(CRD .EQ. 0) THEN
+      ELSE IF     (CRD .EQ. 0) THEN
        INVDP=INVDIP
       ELSE
        RETURN
@@ -4180,22 +4180,22 @@ C     400km level
         N400=(N400B-N400A)/(DDDB-DDDA)*(DDDD-DDDA)+N400A
 C     650km level
       N0A650=0.0
-	N0B650=0.0
-	DO 70 I=1,49
+      N0B650=0.0
+      DO 70 I=1,49
          N0A650=N0A650+C(I)*D(2,SEZAI,I)
 70       N0B650=N0B650+C(I)*D(2,SEZBI,I)
-	N650A=N0A650
-	N650B=N0B650
-	N650=(N650B-N650A)/(DDDB-DDDA)*(DDDD-DDDA)+N650A
+      N650A=N0A650
+      N650B=N0B650
+      N650=(N650B-N650A)/(DDDB-DDDA)*(DDDD-DDDA)+N650A
 C     1000km level
       N0A100=0.0
       N0B100=0.0
-	DO 110 I=1,49
+      DO 110 I=1,49
          N0A100=N0A100+C(I)*D(3,SEZAI,I)
 110      N0B100=N0B100+C(I)*D(3,SEZBI,I)
-	N100A=N0A100
-	N100B=N0B100
-	N1000=(N100B-N100A)/(DDDB-DDDA)*(DDDD-DDDA)+N100A
+      N100A=N0A100
+      N100B=N0B100
+      N1000=(N100B-N100A)/(DDDB-DDDA)*(DDDD-DDDA)+N100A
           
 C      IF (ALT .LT. 650) NO=(N650-N400)/250.0*(ALT-400)+N400
 C      IF (ALT .GE. 650) NO=(N1000-N650)/350.0*(ALT-650)+N650
@@ -4203,10 +4203,10 @@ C      IF (ALT .GE. 650) NO=(N1000-N650)/350.0*(ALT-650)+N650
 C      NION=10**NO
 
       ANO(1)=N400
-	 ANO(2)=N650
-	  ANO(3)=N1000
-	  
-	AH(1)=400.
+       ANO(2)=N650
+        ANO(3)=N1000
+        
+      AH(1)=400.
        AH(2)=650.
         AH(3)=1000.
       
@@ -4224,8 +4224,8 @@ C      NION=10**NO
       SUM=ANO(1)+ST(1)*(ALT-AH(1))                     
      
       I=1
-	aa = eptr(alt  ,dno(i),ah(i+1))
-	bb = eptr(ah(1),dno(i),ah(i+1))
+      aa = eptr(alt  ,dno(i),ah(i+1))
+      bb = eptr(ah(1),dno(i),ah(i+1))
       SUM=SUM+(ST(I+1)-ST(I))*(AA-BB)*DNO(I)
                 
       NION=10**SUM       
@@ -4262,7 +4262,7 @@ C         D - coefficints of spherical harmonics for a given ion
 C         ION - ion species (0...O+, 1...H+, 2...He+, 3...N+)
 C Output: NION - relative density for a given ion 
       REAL INVDIP,FL,DIMO,B0,DIPL,MLT,ALT,NION
-	INTEGER CRD,DDD,ION
+      INTEGER CRD,DDD,ION
       DIMENSION  D(4,3,49),MIRREQ(49)
       REAL INVDP,INVDPC,DTOR
       REAL RMLT,RCOLAT
@@ -4272,9 +4272,9 @@ C Output: NION - relative density for a given ion
       REAL N0A900,N0B900,N900A,N900B,N900
       REAL N0A150,N0B150,N150A,N150B,N1500
       REAL N0A250,N0B250,N250A,N250B,N2500
-	REAL ANO(4),AH(4),DNO(2),ST(3)
-	COMMON/ARGEXP/ARGMAX
-	DATA (MIRREQ(J),J=1,49)/
+      REAL ANO(4),AH(4),DNO(2),ST(3)
+      COMMON/ARGEXP/ARGMAX
+      DATA (MIRREQ(J),J=1,49)/
      &            1,-1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1,-1, 1,-1, 1,-1,
      &            1,-1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1, 1,-1, 1,-1, 1,
      &           -1, 1,-1, 1,-1, 1, 1,-1, 1, 1,-1, 1,-1, 1, 1/
@@ -4288,7 +4288,7 @@ C     coefficients for mirroring
 10     D(4,3,I)=D(4,2,I)*MIRREQ(I)
       IF (CRD .EQ. 1) THEN
        INVDP=INVDPC(FL,DIMO,B0,DIPL,DTOR)
-      ELSE IF	(CRD .EQ. 0) THEN
+      ELSE IF     (CRD .EQ. 0) THEN
        INVDP=INVDIP
       ELSE
        RETURN
@@ -4346,25 +4346,25 @@ C     550km level
         N550=(N550B-N550A)/(DDDB-DDDA)*(DDDD-DDDA)+N550A
 C     900km level
       N0A900=0.0
-	N0B900=0.0
-	DO 70 I=1,49
+      N0B900=0.0
+      DO 70 I=1,49
          N0A900=N0A900+C(I)*D(2,SEZAI,I)
 70       N0B900=N0B900+C(I)*D(2,SEZBI,I)
-	N900A=N0A900
-	N900B=N0B900
-	N900=(N900B-N900A)/(DDDB-DDDA)*(DDDD-DDDA)+N900A
+      N900A=N0A900
+      N900B=N0B900
+      N900=(N900B-N900A)/(DDDB-DDDA)*(DDDD-DDDA)+N900A
 C     1500km level
       N0A150=0.0
       N0B150=0.0
-	DO 110 I=1,49
+      DO 110 I=1,49
          N0A150=N0A150+C(I)*D(3,SEZAI,I)
 110      N0B150=N0B150+C(I)*D(3,SEZBI,I)
-	N150A=N0A150
-	N150B=N0B150
-	N1500=(N150B-N150A)/(DDDB-DDDA)*(DDDD-DDDA)+N150A
+      N150A=N0A150
+      N150B=N0B150
+      N1500=(N150B-N150A)/(DDDB-DDDA)*(DDDD-DDDA)+N150A
 C     2500km level
       N0A250=0.0
-	N0B250=0.0
+      N0B250=0.0
        DO 150 I=1,49
         N0A250=N0A250+C(I)*D(4,SEZAI,I)
 150     N0B250=N0B250+C(I)*D(4,SEZBI,I)
@@ -4384,11 +4384,11 @@ C     H+ may not decrease above 1500km
       IF ((ION .EQ. 1) .AND. (N2500 .LT. N1500)) N2500=N1500
                    
       ANO(1)=N550
-	 ANO(2)=N900
-	  ANO(3)=N1500
-	   ANO(4)=N2500
+       ANO(2)=N900
+        ANO(3)=N1500
+         ANO(4)=N2500
 
-	AH(1)=550.
+      AH(1)=550.
        AH(2)=900.
         AH(3)=1500.
          AH(4)=2250.
@@ -4408,8 +4408,8 @@ C     H+ may not decrease above 1500km
       SUM=ANO(1)+ST(1)*(ALT-AH(1))                     
      
       DO 230 I=1,2
-	aa = eptr(alt  ,dno(i),ah(i+1))
-	bb = eptr(ah(1),dno(i),ah(i+1))
+      aa = eptr(alt  ,dno(i),ah(i+1))
+      bb = eptr(ah(1),dno(i),ah(i+1))
 230   SUM=SUM+(ST(I+1)-ST(I))*(AA-BB)*DNO(I)
                 
       NION=10**SUM       
@@ -4422,7 +4422,7 @@ C      calculation of INVDIP from FL, DIMO, BO, and DIPL
 C      invariant latitude calculated by highly
 C      accurate polynomial expansion
       REAL FL,DIMO,B0,DIPL
-	DOUBLE PRECISION B(8),A
+      DOUBLE PRECISION B(8),A
       REAL DTOR,ASA,INVL,RINVL,RDIPL,ALFA,BETA
       DATA B/1.259921D0  ,-0.1984259D0 ,-0.04686632D0,-0.01314096D0,
      &      -0.00308824D0, 0.00082777D0,-0.00105877D0, 0.00183142D0/
@@ -4499,7 +4499,7 @@ C D.BILITZA,1980.
       F2=1.2-(1.16E-2)*EXP((2.39E-2)*R)            
       F3=0.096*(R-25.0)/150.0                      
       DELM=F1*(1.0-R/150.0*EXP(-XMAGBR*XMAGBR/1600.0))/(X-F2)+F3                
-	  XM3000HM=1490.0/(HMF2+176.0)-DELM
+        XM3000HM=1490.0/(HMF2+176.0)-DELM
       RETURN          
       END             
 C
@@ -4517,8 +4517,8 @@ c       HOWEVER WITH MAGNETIC DIP LATITUDE INSTEAD OF GEOMAGNETIC
 c       DIPOLE LATITUDE, EYFRIG, 1979                    
 C--------------------------------------------- D. BILITZA, 1988.   
         COMMON/CONST/UMR
-	    fof1ed=0.0
-	    if (chi.gt.90.0) return
+          fof1ed=0.0
+          if (chi.gt.90.0) return
 
         DLA =  YLATI
         F0 = 4.35 + DLA * ( 0.0058 - 1.2E-4 * DLA ) 
@@ -4535,27 +4535,27 @@ C--------------------------------------------- D. BILITZA, 1988.
         END             
 C
 C
-	real function f1_c1(xmodip,hour,suxnon,saxnon)
+      real function f1_c1(xmodip,hour,suxnon,saxnon)
 c F1 layer shape parameter C1 after Reinisch and Huang, Advances in
 c Space Research, Volume 25, Number 1, 81-88, 2000.
 
-        common	/const/umr
+        common    /const/umr
         pi = umr * 180.
-	
+      
         ABSMDP=ABS(XMODIP)
-      	DELA=4.32
-      	IF(ABSMDP.GE.18.) DELA=1.0+EXP(-(ABSMDP-30.0)/10.0)
+            DELA=4.32
+            IF(ABSMDP.GE.18.) DELA=1.0+EXP(-(ABSMDP-30.0)/10.0)
 
-      	C1OLD = 0.09 + 0.11/DELA
+            C1OLD = 0.09 + 0.11/DELA
         if(suxnon.eq.saxnon) then
             c1 = 2.5 * c1old
         else
             c1 = 2.5*c1old*cos((HOUR-12.)/(suxnon-saxnon)*pi)
         endif
-      	if(c1.lt.0.0) c1=0.0
-	    f1_c1=c1
-	    return
-	    end
+            if(c1.lt.0.0) c1=0.0
+          f1_c1=c1
+          return
+          end
 c
 c
         subroutine f1_prob (sza,glat,rz12,f1prob,f1probl)
@@ -4567,19 +4567,19 @@ c Output: F1 occurrence probability without L-condition cases (f1prob)
 c and with L-condition cases (f1probl)
         common /const/umr
 
-	    xarg = 0.5 + 0.5 * cos(sza*umr)
-		a = 2.98 + 0.0854 * rz12
-		b = 0.0107 - 0.0022 * rz12
-		c = -0.000256 + 0.0000147 * rz12
-		gamma = a + ( b + c * glat) * glat
-	    f1pr = xarg ** gamma
+          xarg = 0.5 + 0.5 * cos(sza*umr)
+            a = 2.98 + 0.0854 * rz12
+            b = 0.0107 - 0.0022 * rz12
+            c = -0.000256 + 0.0000147 * rz12
+            gamma = a + ( b + c * glat) * glat
+          f1pr = xarg ** gamma
         if(f1pr.lt.1.e-3) f1pr=0.0
         f1prob=f1pr
-	    f1prl = xarg ** 2.36
+          f1prl = xarg ** 2.36
         if(f1prl.lt.1.e-3) f1prl=0.0
         f1probl=f1prl
-	    return
-	    end
+          return
+          end
 C
 C
         REAL FUNCTION FOEEDI(COV,XHI,XHIM,XLATI)
@@ -5137,7 +5137,7 @@ c in:   ld      local day of year
 c       t       local hour (decimal)
 c       flat    northern latitude in degrees
 c       elon    east longitude in degrees
-c		height	height in km
+c           height      height in km
 c
 c out:  declin      declination of the sun in degrees
 c       zenith      zenith angle of the sun in degrees
@@ -5182,7 +5182,7 @@ c
 c calculate sunrise and sunset times --  at the ground...........
 c see Explanatory Supplement to the Ephemeris (1961) pg 401......
 c sunrise at height h metres is at...............................
-		h=height*1000.
+            h=height*1000.
         chih = 90.83 + 0.0347 * sqrt(h)
 c this includes corrections for horizontal refraction and........
 c semi-diameter of the solar disk................................
@@ -6137,12 +6137,12 @@ C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
         ihour=int(hour/3.)+1
         if(ihour.gt.8) ihour=8
 
-        if(is*8+ihour.lt.13) goto 21   ! at least 13 indices available	
+        if(is*8+ihour.lt.13) goto 21   ! at least 13 indices available  
 
         READ(13,10,REC=IS,ERR=21) JY,JMN,JD,iiap,F
         do i9=1,8
-        	if(iiap(i9).lt.-2) goto 21
-        	enddo
+            if(iiap(i9).lt.-2) goto 21
+            enddo
         j1=13-ihour
         do i=1,ihour
            iap(j1+i)=iiap(i)
@@ -6150,8 +6150,8 @@ C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
         iss=is-1
         READ(13,10,REC=ISS,ERR=21) JY,JMN,JD,iiap,F
         do i9=1,8
-        	if(iiap(i9).lt.-2) goto 21
-        	enddo
+            if(iiap(i9).lt.-2) goto 21
+            enddo
         if(ihour.gt.4) then
               do i=1,j1
                 iap(i)=iiap(8-j1+i)
@@ -6163,9 +6163,9 @@ C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
                 enddo
              iss=is-2
              READ(13,10,REC=ISS,ERR=21) JY,JMN,JD,iiap,F
-        	 do i9=1,8
-        		if(iiap(i9).lt.-2) goto 21
-        		enddo
+             do i9=1,8
+                  if(iiap(i9).lt.-2) goto 21
+                  enddo
              do i=1,j2
                 iap(i)=iiap(8-j2+i)
                 enddo
@@ -6205,12 +6205,12 @@ C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
         is=0
         do i=1960,iyyyy-1
             nyd=365
-            if(i/4*4.eq.i) nyd=366	! leap year
+            if(i/4*4.eq.i) nyd=366  ! leap year
             IS=IS+nyd
             enddo
 
         lm(2)=28
-        if(iyyyy/4*4.eq.iyyyy) lm(2)=29	  ! leap year
+        if(iyyyy/4*4.eq.iyyyy) lm(2)=29     ! leap year
         IDN=0
         do i=1,IMN-1
               IDN=IDN+LM(i)
@@ -6219,7 +6219,7 @@ C      OPEN(13,FILE='/usr/local/etc/httpd/cgi-bin/models/IRI/ap.dat',
         IS=IS+IDN+ID
         READ(13,10,REC=IS,ERR=21) JY,JMN,JD,iiap,f
         F107D=f
-		if(f.lt.-4.) goto 21
+            if(f.lt.-4.) goto 21
         
 10      FORMAT(3I3,8I3,F5.1)
         goto 20
@@ -6245,7 +6245,7 @@ C       geographic latitude   -90. to +90.
 C       geographic longitude  0. to 360. positive east from Greenwich.
 C
 C     OUTPUT:
-C       corrected geomagnetic latitude	-90. to +90.
+C       corrected geomagnetic latitude    -90. to +90.
 
 
       DIMENSION CORMAG(20,91)      
@@ -6494,17 +6494,17 @@ C     to angle from South Pole.
       rla = rlan + 90
 
       IF (rlo .EQ. 360) THEN
-      	rlo = 0
+            rlo = 0
         END IF
 
 C     PROXIMITY
 
-C     coefficients of the latitudinal points		
+C     coefficients of the latitudinal points          
       LA1 = (INT(rla/2)+1)
       LA2 = LA1 + 1
       if(la2.gt.91) la2=91
 
-C     coefficients of the longitudinal points		
+C     coefficients of the longitudinal points         
       LO1 = (INT(rlo/18)+1)
 corr      LO2 = LO1 + 1
       LO2 = MOD(LO1,20) + 1 
@@ -6515,11 +6515,11 @@ C     Four points of Geomagnetic Coordinates
       gm3 = CORMAG(LO2,LA1)
       gm4 = CORMAG(LO2,LA2)
 
-C     latitudinal points		
+C     latitudinal points            
       X1 = ABS(rla - (INT(rla)))                        
       X2 = 2. - X1
 
-C     longitudinal points		
+C     longitudinal points           
       Y1 = ABS(rlo - (INT(rlo)))                        
       Y2 = 18. - Y1
       
@@ -6936,11 +6936,11 @@ C-------------------------------------------------------------------
      *  -27.09561,-22.76383,-25.41151, -0.10272, -0.02058, -0.16720/
 
         do i=1,594 
-        	coeff(i)=coeff1(i)
-        	enddo
+            coeff(i)=coeff1(i)
+            enddo
         do i=1,30 
-        	coeff(i+594)=coeff2(i)
-        	enddo
+            coeff(i+594)=coeff2(i)
+            enddo
 
         call g(param,funct,xl)
 
@@ -6989,7 +6989,7 @@ c       *************************************************
            if(x.ge.t_t(j).and.x.lt.t_t(j+1)) then
                b(j,1)=1
            else
-	           b(j,1)=0
+                 b(j,1)=0
            end if
         end do
 
@@ -7138,16 +7138,16 @@ C*********************************************************************
      @          -0.0193, 0.0035, 0.0117, 0.0099, 0.3002,
      @          -0.0492,-0.0201, 0.0338, 0.0099, 0.0746/
 
-	 DATA Coff15/
-     @	        0.0177, 0.0118,-0.0006,-0.0152,-0.0174,-0.0704,
-     @	        0.0051,-0.0074,-0.0096,-0.0107, 0.0152,-0.0674,
-     @	        0.0241, 0.0183, 0.0122,-0.0132, 0.0020,-0.0110,
-     @	        0.0019,-0.0010, 0.0001, 0.0095, 0.0036,-0.0206,
-     @	        0.0170, 0.0183, 0.0042, 0.0085,-0.0140, 0.0583,
+       DATA Coff15/
+     @              0.0177, 0.0118,-0.0006,-0.0152,-0.0174,-0.0704,
+     @              0.0051,-0.0074,-0.0096,-0.0107, 0.0152,-0.0674,
+     @              0.0241, 0.0183, 0.0122,-0.0132, 0.0020,-0.0110,
+     @              0.0019,-0.0010, 0.0001, 0.0095, 0.0036,-0.0206,
+     @              0.0170, 0.0183, 0.0042, 0.0085,-0.0140, 0.0583,
      @          0.0086, 0.0189, 0.0200,-0.0109,-0.0031,-0.0427,
-     @	       -0.0070,-0.0053,-0.0090, 0.0086, 0.0149, 0.2637,
-     @	       -0.0326,-0.0101, 0.0076, 0.0117, 0.0099, 0.3002,
-     @	       -0.0470,-0.0455,-0.0274, 0.0338, 0.0099, 0.0746/
+     @             -0.0070,-0.0053,-0.0090, 0.0086, 0.0149, 0.2637,
+     @             -0.0326,-0.0101, 0.0076, 0.0117, 0.0099, 0.3002,
+     @             -0.0470,-0.0455,-0.0274, 0.0338, 0.0099, 0.0746/
 
 CCCCCCCCCCCCCCCCC**Define to variables**CCCCCCCCCCCCCCCCCCCCC
 C To 1 h time resolution:
@@ -7290,15 +7290,15 @@ CC
          END DO
          AE1_12=AE1_12/45.0D0
 CC 
-	  AEd22_28=0.0D0
+        AEd22_28=0.0D0
           DO i=-88,-112,-1
              AEd22_28s=AE(iP+i)-130.
              IF (AEd22_28s.LE.0) AEd22_28s=0.0
-	     AEd22_28=AEd22_28+AEd22_28s
-	  ENDDO
+           AEd22_28=AEd22_28+AEd22_28s
+        ENDDO
           AEd22_28=AEd22_28/25.0D0
-	  AEd22_28P=AEd22_28-200.0D0
-	  IF (AEd22_28P.LE.0.0D0) AEd22_28P=0.0D0
+        AEd22_28P=AEd22_28-200.0D0
+        IF (AEd22_28P.LE.0.0D0) AEd22_28P=0.0D0
 
 c         AE1_6=0.0D0
 c         AEd1_6=0.0D0
@@ -7309,7 +7309,7 @@ c         dAEt_7P5=400.D0
 c         dAEt_30=0.D0
 c         dAEt_75=0.D0
 CC
-  	  IF (AE1_6.GT.300.0D0) THEN  
+        IF (AE1_6.GT.300.0D0) THEN  
              Alfa=1.0D0
           ELSE IF (AE1_6.GT.200.0D0) THEN
              ALfa=AE1_6/100.0D0-2.0D0
@@ -7329,7 +7329,7 @@ CC
      #                      +Coff15(3,J)*dAEt_75)*bspl4_ptime(J,SLT)
           END DO
           DynamoVd=0.0D0
-	  print*,AEd1_6,AEd7_12,AEd22_28P,Alfa,Beta
+        print*,AEd1_6,AEd7_12,AEd22_28P,Alfa,Beta
           DO J=1,9
              DynamoVd=DynamoVd +(Coff15(4,J)*AEd1_6+
      #                           Coff15(5,J)*Alfa*AEd7_12+
@@ -7359,15 +7359,15 @@ C
        x=x1
        if(i.ge.0) then
           if (x.lt.t_t(i-0)) then
-	       x=x+24
+             x=x+24
           end if
        end if
        do j=i,i+order-1
-	   if(x.ge.t_t(j).and.x.lt.t_t(j+1)) then
-	       b(j,1)=1
-	   else
-	       b(j,1)=0
-	   end if
+         if(x.ge.t_t(j).and.x.lt.t_t(j+1)) then
+             b(j,1)=1
+         else
+             b(j,1)=0
+         end if
        end do
 c
        do j=2,order
@@ -7533,14 +7533,14 @@ C
 *
         if(param(1).le.31.)kf=1
          if(param(1).gt.31..and.param(1).le.(59+n))kf=2
-	      if(param(1).gt.(59+n).and.param(1).le.(90+n))kf=3
+            if(param(1).gt.(59+n).and.param(1).le.(90+n))kf=3
            if(param(1).gt.(90+n).and.param(1).le.(120+n))kf=4
             if(param(1).gt.(120+n).and.param(1).le.(151+n))kf=5
-	         if(param(1).gt.(151+n).and.param(1).le.(181+n))kf=6
+               if(param(1).gt.(151+n).and.param(1).le.(181+n))kf=6
              if(param(1).gt.(181+n).and.param(1).le.(212+n))kf=7
             if(param(1).gt.(212+n).and.param(1).le.(243+n))kf=8
            if(param(1).gt.(243+n).and.param(1).le.(273+n))kf=9
-	      if(param(1).gt.(273+n).and.param(1).le.(304+n))kf=10
+            if(param(1).gt.(273+n).and.param(1).le.(304+n))kf=10
          if(param(1).gt.(304+n).and.param(1).le.(334+n))kf=11
         if(param(1).gt.(334+n).and.param(1).le.(365+n))kf=12
 *
@@ -7570,16 +7570,16 @@ C
         osft=0.
         do i=1,23
           il=i+3
-	      if(il.gt.23)il=il-23
+            if(il.gt.23)il=il-23
           do j=1,12
-	        jl=j+2
-	        if(jl.gt.12)jl=jl-12
+              jl=j+2
+              if(jl.gt.12)jl=jl-12
             do m=1,3
-	          ml=m+1
-	          if(ml.gt.3)ml=ml-3
+                ml=m+1
+                if(ml.gt.3)ml=ml-3
               do  l=1,2
                 bspl4=bspl4t(i,slt)*bspl2s(j,param(1))*
-     &	         bspl2l(l,param(3))*bspl2f(m,param(2))
+     &               bspl2l(l,param(3))*bspl2f(m,param(2))
                 osft=osft+bspl4*sosf(l,il,ml,jl)           
               enddo
             enddo
@@ -7713,15 +7713,15 @@ C
       data ifnodes2 /144,140,139,142,139,146,142,139,150,151,150,157/
       data ifnodes3 /214,211,201,208,213,220,203,209,213,215,236,221/ 
 *
-	ts(0)=ifnodes1(kf)
+      ts(0)=ifnodes1(kf)
         ts(1)=ifnodes2(kf)
-	ts(2)=ifnodes3(kf)
-	ts(3)=ts(1)+367
+      ts(2)=ifnodes3(kf)
+      ts(3)=ts(1)+367
         ts(4)=ts(2)+367
-	ts(5)=ts(3)+367
-	ts(6)=ts(4)+367
+      ts(5)=ts(3)+367
+      ts(6)=ts(4)+367
         ts(7)=ts(5)+367
-	ts(8)=ts(6)+367
+      ts(8)=ts(6)+367
         ts(9)=ts(7)+367
 *
       t=t1

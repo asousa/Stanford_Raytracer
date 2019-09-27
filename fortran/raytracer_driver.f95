@@ -17,10 +17,10 @@ program raytracer_driver
   
 
 
-  ! use raytracer, only : raytracer_run, raytracer_stopconditions
+  use raytracer, only : raytracer_run, raytracer_stopconditions
 
   ! Temporary file for me to safely fuck with the gradients
-  use raytracer_spherical, only : raytracer_run, raytracer_stopconditions
+  ! use raytracer_spherical, only : raytracer_run, raytracer_stopconditions
 
   use scattered_interp_dens_model_adapter, only : &
        fscatteredinterp=>funcPlasmaParams, &
@@ -245,7 +245,7 @@ program raytracer_driver
   ! number.  For double-precision models, obviously something higher
   ! can be used (1e-8 or thereabouts).
   delSP = 1.0e-4_DP
-  delDP = 1.0e-7_DP
+  delDP = 1.0e-6_DP
   ! del = 1.0e-6_DP
   ! del = 1.0e-8_DP
 

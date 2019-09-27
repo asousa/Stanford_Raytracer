@@ -51,6 +51,8 @@ program dumpmodel
   real(kind=DP), allocatable :: qs(:), Ns(:), ms(:), nus(:)
   real(kind=DP) :: B0(3)
 
+  integer(kind=DP) :: mag_coords  ! If 1, use magnetic dipole coordinates (cartesian). Else, SM.
+  real(kind=DP) :: x_mag(3)
   modelnum = 0
   ind=0
 
@@ -1076,6 +1078,12 @@ program dumpmodel
         read (buffer,*) tmpinput
         simple_state_data%fixed_MLT = floor(tmpinput)
      end if
+    call getopt_named( 'mag_coords', buffer, foundopt )
+     if( foundopt == 1 ) then
+        read (buffer,*) mag_coords
+
+        ! simple_state_data%fixed_MLT = floor(tmpinput)
+     end if
 
 
      ! Marshall our data to the callback
@@ -1108,6 +1116,7 @@ program dumpmodel
      print *, '   tsyganenko_W4:    ', simple_state_data%W4
      print *, '   tsyganenko_W5:    ', simple_state_data%W5
      print *, '   tsyganenko_W6:    ', simple_state_data%W6
+     print *, '   mag_coords:       ', mag_coords
      flush(OUTPUT_UNIT)
 
 
@@ -1123,7 +1132,14 @@ program dumpmodel
         flush(OUTPUT_UNIT)
         do j=1,ny
            do i=1,nx
-              call fsimple((/x(i),y(j),z(k)/), qs, Ns, ms, nus, B0, data)
+              if (mag_coords==1) then
+                ! geomag coordinates
+                call SM_TO_MAG_D(simple_state_data%itime, (/x(i),y(j),z(k)/), x_mag)
+                call fsimple(x_mag, qs, Ns, ms, nus, B0, data)
+              else
+                ! SM coordinates
+                call fsimple((/x(i),y(j),z(k)/), qs, Ns, ms, nus, B0, data)
+              end if
               f(:,i,j,k) = (/qs, Ns, Ms, nus, B0/)
            end do
         end do

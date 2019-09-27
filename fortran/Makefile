@@ -35,7 +35,6 @@ sources = \
 	kdtree_mod.f95 \
 	util.f95 \
 	raytracer.f95 \
-	raytracer_spherical.f95 \
 	lsinterp_mod.f95 \
 	blas.f95
 
