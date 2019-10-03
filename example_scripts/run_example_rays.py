@@ -4,7 +4,7 @@ import subprocess
 import os
 import datetime
 import xflib  # Fortran xform-double library (coordinate transforms)
-# xf = xflib.xflib(lib_path=os.path.join(os.getcwd(),'libxformd.so'))
+xf = xflib.xflib(lib_path=os.path.join(os.getcwd(),'libxformd.so'))
 
 
 
@@ -32,7 +32,7 @@ mag_dump = False # Use magnetic dipole coordinates for the dump, instead of SM.
 inp_lat = 45;   # launch latitude (geomagnetic)
 inp_lon = 256.6;    # launch longitude (geomagnetic)
 freq = 440;     # ray frequency in Hz. How about concert A?
-inp_alt = (R_E + 1000)*1e3 # Launch altitude in meters
+inp_alt = (R_E + 10000)*1e3 # Launch altitude in meters
 launch_direction = 'field-aligned'
 
 # -------------- Environmental parameters -------------
@@ -70,7 +70,7 @@ for mode in modes_to_do:
     if mode == 1:
         # -------------- Test the Ngo model ------------------
 
-        configfile = os.path.join(project_root,"ngo_kp2.in")
+        configfile = os.path.join(project_root,"newray_default.in")
         modelnum = 1
         ray_inpfile  = os.path.join(project_root,"ray_inpfile.txt")
         ray_outfile  = os.path.join(ray_out_dir,'example_ray_ngo.ray')
@@ -78,10 +78,11 @@ for mode in modes_to_do:
 
         # ------ Write the ray input file for the Ngo model ---
         f = open(ray_inpfile,'w')
-        # pos_mag = [1, inp_lat, inp_lon]   # alt, lat, lon, in magnetic dipole coords
-        # dd= datetime.datetime(2010,6,21,16,0,0)
-        # pos_SM = xf.rllmag2sm(pos_mag, dd)
+        pos_mag = [inp_alt, inp_lat, inp_lon]   # alt, lat, lon, in magnetic dipole coords
+        dd= datetime.datetime(2010,1,1,0,0,0)
+        pos0 = xf.rllmag2sm(pos_mag, dd)
 
+        dir0 = np.array([0,1,0])
         # print("pos_mag",pos_mag)
         # print("pos_SM",pos_SM)
         # print("and back: ", xf.sm2rllmag(pos_SM, dd))
@@ -91,12 +92,12 @@ for mode in modes_to_do:
         # pos_SM  = xf.rllmag2sm(pos_mag, datetime.datetime(2010,1,1,0,0,0))
         # print(pos_SM)
 
-        pos0 = np.array([np.sqrt(2)/2, 0, np.sqrt(2)/2])*inp_alt
-
-        if (launch_direction is 'up'):
-            dir0 = pos_SM/np.linalg.norm(pos0)    # radial outward
-        elif (launch_direction is 'field-aligned'):
-            dir0 = np.zeros(3)                # Field aligned (set in raytracer)
+        # pos0 = np.array([np.sqrt(2)/2, 0, np.sqrt(2)/2])*inp_alt
+                
+        # if (launch_direction is 'up'):
+        #     dir0 = pos_SM/np.linalg.norm(pos0)    # radial outward
+        # elif (launch_direction is 'field-aligned'):
+        #     dir0 = np.zeros(3)                # Field aligned (set in raytracer)
 
 
         w0   = freq*2.0*np.pi
@@ -170,14 +171,12 @@ for mode in modes_to_do:
 
         modelnum = 2
 
-
-
         ray_outfile  = os.path.join(ray_out_dir,'example_ray_gcpm.ray')
         damp_outfile = os.path.join(ray_out_dir,'example_ray_gcpm.damp')
 
         gcpm_cmd= './raytracer --outputper=%d --dt0=%g --dtmax=%g'%(1, dt0, dtmax) + \
                  ' --tmax=%g --root=%d --fixedstep=%d --maxerr=%g'%(t_max, root, fixedstep, maxerr) + \
-                 ' --maxsteps=%d --minalt=%d --inputraysfile="%s" --outputfile="%s"'%( maxsteps, minalt, ray_inpfile, ray_outfile) + \
+                 ' --maxsteps=%d --minalt=%d --outputfile="%s"'%( maxsteps, minalt, ray_outfile) + \
                  ' --modelnum=%d --yearday=%s --milliseconds_day=%d'%(modelnum, yearday, milliseconds_day) + \
                  ' --use_tsyganenko=%d --use_igrf=%d --tsyganenko_Pdyn=%g'%(use_tsyg, use_IGRF, Pdyn) + \
                  ' --tsyganenko_Dst=%g --tsyganenko_ByIMF=%g --tsyganenko_BzIMF=%g'%( Dst, ByIMF, BzIMF ) + \
@@ -202,6 +201,41 @@ for mode in modes_to_do:
         print(damp_cmd)
         os.system(damp_cmd)
 
+    if mode == 3:
+        modelnum = 3
 
+        interpfile = os.path.join(project_root,'precomputed_grids','gcpm_kp4_2001001_L10_80x80x80_noderiv.txt')
+        ray_outfile  = os.path.join(ray_out_dir,'example_ray_mode3.ray')
+        damp_outfile = os.path.join(ray_out_dir,'example_ray_mode3.damp')
+
+
+        gcpm_cmd= './raytracer --outputper=%d --dt0=%g --dtmax=%g'%(1, dt0, dtmax) + \
+                 ' --tmax=%g --root=%d --fixedstep=%d --maxerr=%g'%(t_max, root, fixedstep, maxerr) + \
+                 ' --maxsteps=%d --minalt=%d --outputfile="%s"'%( maxsteps, minalt, ray_outfile) + \
+                 ' --modelnum=%d --yearday=%s --milliseconds_day=%d'%(modelnum, yearday, milliseconds_day) + \
+                 ' --use_tsyganenko=%d --use_igrf=%d --tsyganenko_Pdyn=%g'%(use_tsyg, use_IGRF, Pdyn) + \
+                 ' --tsyganenko_Dst=%g --tsyganenko_ByIMF=%g --tsyganenko_BzIMF=%g'%( Dst, ByIMF, BzIMF ) + \
+                 ' --tsyganenko_W1=%g --tsyganenko_W2=%g --tsyganenko_W3=%g'%(W[0], W[1], W[2]) + \
+                 ' --tsyganenko_W4=%g --tsyganenko_W5=%g --tsyganenko_W6=%g'%(W[3], W[4], W[5]) + \
+                 ' --kp=%g --interp_interpfile="%s"'%(Kp,interpfile)
+
+
+
+
+        print("------- Running gridded interp model -------")
+
+        print(gcpm_cmd)
+        os.system(gcpm_cmd)
+
+
+        damp_mode = 1
+        damp_cmd =  './damping --inp_file "%s" --out_file "%s" '%(ray_outfile, damp_outfile) + \
+                '--Kp %g --AE %g --mode %d'%(Kp, AE, damp_mode) + \
+                ' --yearday %s --msec %d'%(yearday, milliseconds_day)
+
+        print("------- Running gridded interp damping -------")
+
+        print(damp_cmd)
+        os.system(damp_cmd)
 # Move back to the working directory
 os.chdir(cwd)
