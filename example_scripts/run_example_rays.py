@@ -3,9 +3,14 @@ import numpy as np
 import subprocess
 import os
 import datetime
-import xflib  # Fortran xform-double library (coordinate transforms)
-xf = xflib.xflib(lib_path=os.path.join(os.getcwd(),'libxformd.so'))
 
+# Austin's wrapper for xflib
+# import xflib  # Fortran xform-double library (coordinate transforms)
+# xf = xflib.xflib(lib_path=os.path.join(os.getcwd(),'libxformd.so'))
+
+# Spacepy (for coordinate transforms)
+from spacepy import coordinates as coord
+from spacepy.time import Ticktock
 
 
 # ------------------Constants --------------------------
@@ -15,33 +20,31 @@ R_E = 6371
 t_max = 5     # Maximum duration in seconds
 
 dt0 = 1e-3      # Initial timestep in seconds
-dtmax = 0.05    # Maximum allowable timestep in seconds
+dtmax = 0.1     # Maximum allowable timestep in seconds
 root = 2        # Which root of the Appleton-Hartree equation
                 # (1 = negative, 2 = positive)
                 # (2=whistler in magnetosphere)
 fixedstep = 0   # Don't use fixed step sizes, that's a bad idea.
-maxerr = 1.0e-3 # Error bound for adaptive timestepping
+maxerr = 5.0e-4 # Error bound for adaptive timestepping
 maxsteps = 2e5  # Max number of timesteps (abort if reached)
 use_IGRF = 0    # Magnetic field model (1 for IGRF, 0 for dipole)
-use_tsyg = 0    # Use the Tsyganenko magnetic field model corrections
+use_tsyg = 1    # Use the Tsyganenko magnetic field model corrections
 minalt   = (R_E + 800)*1e3 # cutoff altitude in meters
 
-mag_dump = False # Use magnetic dipole coordinates for the dump, instead of SM.
-
 # -------------- Starting ray parameters -------------
-inp_lat = 45;   # launch latitude (geomagnetic)
-inp_lon = 256.6;    # launch longitude (geomagnetic)
-freq = 440;     # ray frequency in Hz. How about concert A?
-inp_alt = (R_E + 10000)*1e3 # Launch altitude in meters
+inp_lat = 45;               # launch latitude (geomagnetic)
+inp_lon = 256.6;            # launch longitude (geomagnetic)
+freq = 440;                 # ray frequency in Hz. How about concert A?
+inp_alt = (R_E + 1000)*1e3  # Launch altitude in meters
 launch_direction = 'field-aligned'
 
 # -------------- Environmental parameters -------------
 
-
 yearday = '2010001'		#YYYYDDD
 milliseconds_day = 0;	# milliseconds into the day
+ray_datenum = datetime.datetime(2010, 1, 1, 0, 0, 0);
 
-Kp    = 2 # 0.7
+Kp    = 2 
 AE    = 1.6
 Pdyn  = 4
 Dst   = 1.0
@@ -50,7 +53,20 @@ BzIMF = -5
 # Tsyganenko correction parameters
 W = [0.132,    0.303,    0.083,    0.070,    0.211,    0.308 ]  # Doesn't matter if we're not using Tsyg
 
-modes_to_do = [1,3,6]
+# Which plasmasphere models should we run?
+#   1 - Legacy (Ngo) model
+#   2 - GCPM (Accurate, but * s l o w * )
+#   3 - Uniformly interpolated precomputed model
+#   4 - Randomly interpolated precomputed model
+#   5 - (not real)
+#   6 - Simplified GCPM from Austin Sousa's thesis
+
+modes_to_do = [1,6]
+
+# Should we include a geometric focusing term in the damping?
+include_geom_factor = 1 # 1 for yes
+
+
 
 # -------------- Set up the output directory ----------
 project_root = os.getcwd();
@@ -68,29 +84,25 @@ if not os.path.exists(ray_out_dir):
 ray_inpfile  = os.path.join(project_root,"ray_inpfile.txt")
 
 f = open(ray_inpfile,'w')
-pos_mag = [inp_alt, inp_lat, inp_lon]   # alt, lat, lon, in magnetic dipole coords
-dd= datetime.datetime(2010,1,1,0,0,0)
-pos0 = xf.rllmag2sm(pos_mag, dd)
 
-dir0 = np.array([0,1,0])
-# print("pos_mag",pos_mag)
-# print("pos_SM",pos_SM)
-# print("and back: ", xf.sm2rllmag(pos_SM, dd))
+# --- Rotate to SM using spacepy coordinate transform ---
+tmp_coords = coord.Coords((inp_alt, inp_lat, inp_lon),'MAG','sph',units=['m','deg','deg'])
+tmp_coords.ticks = Ticktock(ray_datenum) # add ticks
+pos0 = tmp_coords.convert('SM','car')
 
-# pos_flat = [np.sqrt(2)/2, 0, np.sqrt(2)/2]
-# print("pos_flat",xf.sm2rllmag(pos_flat, dd))
-# pos_SM  = xf.rllmag2sm(pos_mag, datetime.datetime(2010,1,1,0,0,0))
-# print(pos_SM)
-
-# pos0 = np.array([np.sqrt(2)/2, 0, np.sqrt(2)/2])*inp_alt
+pos0 = np.array([1,0,1])
+pos0 = pos0/np.linalg.norm(pos0)
+pos0*= inp_alt
         
-# if (launch_direction is 'up'):
-#     dir0 = pos_SM/np.linalg.norm(pos0)    # radial outward
-# elif (launch_direction is 'field-aligned'):
-#     dir0 = np.zeros(3)                # Field aligned (set in raytracer)
+if launch_direction is 'field-aligned':
+    dir0 = np.zeros(3)                # Field aligned (set in raytracer)
+else:
+    dir0 = np.array([pos0.x, pos0.y, pos0.z])/np.linalg.norm(pos0)    # radial outward
+
 
 
 w0   = freq*2.0*np.pi
+# f.write('%1.15e %1.15e %1.15e %1.15e %1.15e %1.15e %1.15e\n'%(pos0.x, pos0.y, pos0.z, dir0[0], dir0[1], dir0[2], w0))
 f.write('%1.15e %1.15e %1.15e %1.15e %1.15e %1.15e %1.15e\n'%(pos0[0], pos0[1], pos0[2], dir0[0], dir0[1], dir0[2], w0))
 f.close()
 
@@ -121,41 +133,60 @@ for mode in modes_to_do:
 
     base_damp_cmd =  './damping --inp_file "%s" --out_file "%s" '%(ray_outfile, damp_outfile) + \
                 ' --Kp %g --AE %g'%(Kp, AE) + \
-                ' --yearday %s --msec %d'%(yearday, milliseconds_day)
+                ' --yearday %s --msec %d'%(yearday, milliseconds_day) +\
+                ' --geom_factor=%d'%include_geom_factor
 
     if mode == 1:
         # -------------- Test the Ngo model ------------------
         configfile = os.path.join(project_root,"newray_default.in")
+        damp_mode = 0
 
         ray_cmd = base_cmd + ' --ngo_configfile="%s"'%(configfile)
-
-        damp_mode = 0
         damp_cmd =  base_damp_cmd + ' --mode %d'%damp_mode
 
     if mode == 2:
         # -------------- Test the full GCPM model ------------------
-        ray_cmd = base_cmd + ' --gcpm_kp=%g'%(Kp)
-
         damp_mode = 1
+
+        ray_cmd = base_cmd + ' --gcpm_kp=%g'%(Kp)
         damp_cmd =  base_damp_cmd + ' --mode %d'%damp_mode
 
     if mode == 3:
-        interpfile = os.path.join(project_root,'precomputed_grids','precomputed_model_gcpm_2010001_0_kp2_L10_100x100x50.dat')
+        # -------------- Test the uniformly-sampled GCPM model ------------------
+        mode3_interpfile = os.path.join(project_root,'precomputed_grids',
+            'gcpm_kp4_2001001_L10_80x80x80_noderiv.txt')
+        damp_mode = 1
 
-        ray_cmd = base_cmd +' --interp_interpfile="%s"'%(interpfile)
+        ray_cmd = base_cmd +' --interp_interpfile="%s"'%(mode3_interpfile)
+        damp_cmd =  base_damp_cmd + ' --mode %d'%damp_mode
+
+    if mode == 4:
+        # -------------- Test the randomly-sampled GCPM model ------------------
+        mode4_modelfile = os.path.join(project_root,
+            'precomputed_grids','precomputed_model_gcpm_2010001_0_kp2_L10_random.dat')
+
+        # Mode4 interpolation parameters:
+        scattered_interp_window_scale = 1.2
+        scattered_interp_order = 2
+        scattered_interp_exact = 0   # Try 0 if there's weirdness at discontinuities
+        scattered_interp_local_window_scale = 5
 
         damp_mode = 1
+
+        ray_cmd = base_cmd + ' --interp_interpfile=%s'%(mode4_modelfile) +\
+                ' --scattered_interp_window_scale=%d'%(scattered_interp_window_scale) +\
+                ' --scattered_interp_order=%d'%(scattered_interp_order) +\
+                ' --scattered_interp_exact=%d'%(scattered_interp_exact) +\
+                ' --scattered_interp_local_window_scale=%d'%(scattered_interp_local_window_scale)
         damp_cmd =  base_damp_cmd + ' --mode %d'%damp_mode
 
     if mode == 6:
         # -------------- Test the Simplified GCPM model ------------------
-
         MLT = 0
-        fixed_MLT = 0 # Force the raytracer to stay in the meridonal plane?
+        fixed_MLT = 1 # Force the raytracer to stay in the meridonal plane?
+        damp_mode = 0
 
         ray_cmd = base_cmd + ' --MLT="%g" --fixed_MLT=%g --kp=%g'%(MLT, fixed_MLT, Kp)
-
-        damp_mode = 1
         damp_cmd =  base_damp_cmd + ' --mode %d'%damp_mode
 
     # Run it!
